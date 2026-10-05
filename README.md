@@ -190,7 +190,7 @@ Issues and pull requests are welcome. For anything bigger than a small fix, plea
 <details>
 <summary><b>Releasing</b> (maintainers)</summary>
 
-1. Open a pull request from `develop` to `main` titled `Release X.Y.Z`, and merge it with a merge commit once the checks pass.
+1. Open a pull request to `main` titled `Release X.Y.Z`, from `develop` or from a `release/X.Y.Z` branch off `develop` for last changes such as the release notes. Merge it with a merge commit once the checks pass.
 2. Tag the merge commit on `main`:
 
    ```sh
