@@ -10,7 +10,12 @@ struct EyelidApp: App {
         }
 
         Settings {
-            SettingsView(settings: appDelegate.settings, shelf: appDelegate.shelf)
+            SettingsView(
+                settings: appDelegate.settings,
+                shelf: appDelegate.shelf,
+                clipboard: appDelegate.clipboard,
+                clipboardShortcut: appDelegate.clipboardShortcut
+            )
         }
     }
 }
