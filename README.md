@@ -71,6 +71,16 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 
 Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs. It's made for MacBooks with a notch; other Macs get a virtual one.
 
+### With Homebrew
+
+```sh
+brew install --cask nikita19329/tap/eyelid
+```
+
+The [tap](https://github.com/Nikita19329/homebrew-tap) only accepts zips that Eyelid's Release workflow built and attested, and picks up new releases within a day.
+
+### By hand
+
 1. Download `Eyelid-X.Y.Z.zip` from the [latest release](https://github.com/Nikita19329/Eyelid/releases/latest).
 2. **Optional:** check that the zip was built from this repository by its Release workflow, with the [GitHub CLI](https://cli.github.com):
 
@@ -79,11 +89,14 @@ Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs. It's m
    ```
 
 3. Unzip it and move `Eyelid.app` to Applications.
-4. Open Eyelid. It isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
 
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/Eyelid.app
-   ```
+### First launch
+
+Eyelid isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Eyelid.app
+```
 
 ### Volume and brightness HUD
 
@@ -94,8 +107,8 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 
 ### Updating and uninstalling
 
-- **Update:** quit Eyelid from the menu bar, replace `Eyelid.app` with the new one, and open it.
-- **Uninstall:** turn off **Launch at login** in Settings, quit Eyelid, and delete `Eyelid.app`. To remove its settings too, run `defaults delete io.github.nikita19329.eyelid`, and remove Eyelid from the Accessibility list if you allowed it there.
+- **Update:** `brew upgrade --cask eyelid`. By hand: quit Eyelid from the menu bar, replace `Eyelid.app` with the new one, and open it.
+- **Uninstall:** turn off **Launch at login** in Settings first. Then run `brew uninstall --cask --zap eyelid`, which also removes Eyelid's settings. By hand: quit Eyelid, delete `Eyelid.app`, and run `defaults delete io.github.nikita19329.eyelid`. Remove Eyelid from the Accessibility list if you allowed it there.
 
 ## Privacy
 
@@ -179,6 +192,12 @@ Issues and pull requests are welcome. For anything bigger than a small fix, plea
    git push
    ```
 
+4. The [Homebrew tap](https://github.com/Nikita19329/homebrew-tap) picks up the release within a day. To update it right away:
+
+   ```sh
+   gh workflow run update.yml --repo Nikita19329/homebrew-tap
+   ```
+
 The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version, the signature and the protections listed under [Security](#security). This build job can only read the repository. A separate publish job, the only one that can write, signs a build provenance attestation for the zip, then publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
 
 </details>
@@ -208,7 +227,7 @@ docs/images/    Images for this README, rendered from Eyelid's own views
 - [ ] Calendar: upcoming events
 - [ ] File shelf: drop files onto the notch
 - [ ] Notches on several displays at once
-- [ ] Automatic updates (Sparkle), a Homebrew cask, notarization
+- [ ] Automatic updates (Sparkle) and notarization
 
 What's already in each version is in the [release notes](https://github.com/Nikita19329/Eyelid/releases).
 
