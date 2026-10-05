@@ -73,12 +73,22 @@ final class NowPlayingService {
         let output = pipe.fileHandleForReading
         readTask = Task.detached(priority: .utility) { [weak self] in
             let decoder = JSONDecoder()
+            // Updates repeat the artwork, so each new image is decoded once, here and not on the main actor.
+            var decoded: (data: Data, artwork: Artwork?)?
             do {
                 for try await line in output.bytes.lines {
                     guard let message = try? decoder.decode(AdapterStreamMessage.self, from: Data(line.utf8)),
                           message.type == "data"
                     else { continue }
-                    await self?.apply(NowPlayingSnapshot(payload: message.payload))
+
+                    var snapshot = NowPlayingSnapshot(payload: message.payload)
+                    if let data = snapshot?.artworkData {
+                        if decoded?.data != data {
+                            decoded = (data, Artwork(data: data))
+                        }
+                        snapshot?.artwork = decoded?.artwork
+                    }
+                    await self?.apply(snapshot)
                 }
             } catch {
                 // The pipe closes when the adapter exits; `streamDidExit` takes care of restarting it.
@@ -110,7 +120,7 @@ final class NowPlayingService {
         var artwork = track?.artwork
         if snapshot.artworkData != artworkData {
             artworkData = snapshot.artworkData
-            artwork = snapshot.artworkData.flatMap(NSImage.init(data:))
+            artwork = snapshot.artwork.map { NSImage(cgImage: $0.image, size: .zero) }
         }
 
         let appURL = snapshot.appBundleIdentifier.flatMap {

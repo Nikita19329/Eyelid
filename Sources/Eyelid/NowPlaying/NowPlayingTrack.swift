@@ -44,7 +44,10 @@ struct NowPlayingSnapshot: Sendable {
     var duration: TimeInterval?
     var elapsedTime: TimeInterval?
     var timestamp: Date?
+    /// The raw image, to tell whether the artwork changed.
     var artworkData: Data?
+    /// Filled in by `NowPlayingService`, which decodes each new image once.
+    var artwork: Artwork?
 
     /// Returns nil when nothing is playing: the adapter then sends an empty payload.
     init?(payload: AdapterStreamMessage.Payload) {
@@ -60,6 +63,8 @@ struct NowPlayingSnapshot: Sendable {
         duration = payload.durationMicros.map { $0 / 1_000_000 }
         elapsedTime = payload.elapsedTimeMicros.map { $0 / 1_000_000 }
         timestamp = payload.timestampEpochMicros.map { Date(timeIntervalSince1970: $0 / 1_000_000) }
-        artworkData = payload.artworkData.flatMap { Data(base64Encoded: $0) }
+        artworkData = payload.artworkData.flatMap { encoded in
+            encoded.utf8.count <= Artwork.maxEncodedLength ? Data(base64Encoded: encoded) : nil
+        }
     }
 }

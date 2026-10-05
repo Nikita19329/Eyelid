@@ -24,7 +24,13 @@ Eyelid sits on top of the notch and blends in with it. Hover over the notch and 
 
 Download the latest `Eyelid-*.zip` from [Releases](https://github.com/Nikita19329/Eyelid/releases/latest), unzip it, and move `Eyelid.app` to Applications. Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs.
 
-Eyelid isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
+Eyelid isn't notarized yet, so macOS can't vouch for it. Check that the zip was built from this repository by its Release workflow, with the [GitHub CLI](https://cli.github.com):
+
+```sh
+gh attestation verify Eyelid-0.2.0.zip --repo Nikita19329/Eyelid
+```
+
+macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
 
 ```sh
 xattr -dr com.apple.quarantine /Applications/Eyelid.app
@@ -88,7 +94,7 @@ To release:
    git push
    ```
 
-The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version and the signature. Then it publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
+The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version, the signature and the protections described under [Security](#security). This build job can only read the repository. A separate publish job, the only one that can write, signs a build provenance attestation for the zip. Then it publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
 
 ## How it works
 
@@ -102,7 +108,18 @@ The volume HUD picks the device icon from what CoreAudio reports about the outpu
 
 Since Eyelid is signed ad hoc, macOS ties the Accessibility permission to one exact build. After an update or a rebuild, remove Eyelid from **System Settings → Privacy & Security → Accessibility** and allow it again. Eyelid shows the system prompt for it on launch.
 
-While developing, a real signing identity keeps the permission across rebuilds. `make` uses the first Apple Development certificate in your keychain and falls back to ad hoc without one. To get a free one, sign in with an Apple ID in **Xcode → Settings → Accounts**, then choose **Manage Certificates… → + → Apple Development**. `CODESIGN_IDENTITY=-` forces ad hoc, and `CODESIGN_IDENTITY="…"` picks another identity.
+While developing, a real signing identity keeps the permission across rebuilds. `make` uses the first Apple Development certificate in your keychain and falls back to ad hoc without one. To get a free one, sign in with an Apple ID in **Xcode → Settings → Accounts**, then choose **Manage Certificates… → + → Apple Development**. `CODESIGN_IDENTITY=-` forces ad hoc, and `CODESIGN_IDENTITY="…"` picks another identity. The certificate carries your Apple ID email, so share only release builds, which CI signs ad hoc.
+
+## Security
+
+With the volume and brightness HUD on, Eyelid holds Accessibility access: it can watch input and control other apps. So the main risk is another program on the Mac getting its code to run with that access. Eyelid guards against this:
+
+- **No code loading into Eyelid.** Builds are signed with the hardened runtime. The app binary has a `__RESTRICT` segment, so dyld ignores `DYLD_*` variables, which the hardened runtime alone doesn't ensure for ad hoc signed builds. The Release workflow fails if either protection is missing.
+- **A clean environment for perl.** macOS treats Eyelid as responsible for its child processes, and perl runs code named in variables such as `PERL5OPT`. So the adapter starts with nothing but `PATH`.
+- **Code only from the bundle.** Release builds load the adapter only from the app bundle. Looking in the working directory, for `swift run`, is limited to debug builds.
+- **Careful with artwork.** Any app or web page can set now playing artwork. Eyelid drops images over about 8 MB or 50 megapixels, decodes the rest away from the main thread, and scales them down to what the notch shows.
+- **No network access.** Eyelid itself never connects anywhere.
+- **Supply chain.** mediaremote-adapter is pinned to a reviewed release. Workflows pin GitHub Actions to commit SHAs, which Dependabot keeps current. Release zips come with a build provenance attestation.
 
 ## Project layout
 
