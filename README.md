@@ -95,7 +95,7 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 | Shelf | The file shelf, whether dragged-out files leave it, and a button to clear it |
 | Clipboard | The clipboard history, its shortcut, pasting right away, and a button to clear it |
 
-<img src="docs/images/settings.png" alt="The Volume & Brightness tab of Eyelid's settings" width="420">
+<img src="docs/images/settings.png" alt="The Volume & Brightness tab of Eyelid's settings: the HUD with its level style, output changes, and an icon for each output device" width="420">
 
 ## Install
 
