@@ -30,7 +30,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Tabs** in the open notch: Now Playing, the file shelf, and the clipboard history once you turn it on.
 - **Stays out of the way.** No Dock icon, on every Space and over full-screen apps. Clicks pass through to the menu bar while the notch is closed.
 - **Macs without a notch** get a virtual one at the top of the main display.
-- **Several displays.** A notch on the built-in display, on one you choose, or on every display, each with its own hover. The volume HUD, battery and output changes, and the clipboard history show up on the display with the pointer.
+- **Several displays.** By default the notch follows the pointer from display to display. It can also stay on one display, or show on every display, each with its own hover. The volume HUD, battery and output changes, and the clipboard history show up on the display with the pointer.
 
 ### Now Playing
 
