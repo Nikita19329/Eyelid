@@ -32,6 +32,12 @@ final class NotchViewModel {
         static let batteryEventDuration: TimeInterval = 3
         /// How long a new sound output stays next to the closed notch, in seconds.
         static let outputEventDuration: TimeInterval = 3
+        /// How far the lower lid hangs below the hardware notch, in the middle, to show the track title.
+        static let trackTitleHeight: CGFloat = 30
+        /// How far above the bottom of the lid the title runs.
+        static let trackTitleInset: CGFloat = 8
+        /// The corners of the lid are pointed, like the corners of an eye.
+        static let lidBottomRadius: CGFloat = 2
         /// Transparent margin around the open notch so its shadow is not clipped.
         static let shadowPadding: CGFloat = 40
         /// How far around the closed notch dragged files open it, which makes the notch easier to hit.
@@ -53,6 +59,8 @@ final class NotchViewModel {
     /// Where sound just switched to, or the earbuds in use as they change. Shown in place of a battery event or now
     /// playing.
     var output: OutputEvent?
+    /// What just started playing, shown under the closed notch for a moment.
+    var trackTitle: TrackTitle?
     /// Whether files are being dragged anywhere on the screen, which may end on the notch.
     var isDraggingFiles = false
     /// Whether files are being dragged over the open notch, which would add them to the shelf.
@@ -177,6 +185,23 @@ final class NotchViewModel {
         settings.showsLiveActivity && nowPlaying.track?.isPlaying == true
     }
 
+    /// Whether the closed notch drops down to show the track title. The HUD, battery and output events go first.
+    var isShowingTrackTitle: Bool {
+        state == .closed && trackTitle != nil && hud == nil && output == nil && batteryEvent == nil
+    }
+
+    /// The lower lid hangs from the bottom corners while the notch shows the track title.
+    var lowerLidDepth: CGFloat {
+        isShowingTrackTitle ? Layout.trackTitleHeight : 0
+    }
+
+    /// Takes the title away once it has run past, unless another one took its place.
+    func finishTrackTitle(_ id: TrackTitle.ID) {
+        if trackTitle?.id == id {
+            trackTitle = nil
+        }
+    }
+
     /// Size of the notch body, excluding the ears.
     var bodySize: CGSize {
         let notch = geometry.notchSize
@@ -187,9 +212,10 @@ final class NotchViewModel {
         case .closed:
             let sideWidth = hud != nil || output != nil
                 ? Layout.hudSideWidth
-                : (showsActivity ? Layout.activitySideWidth : 0)
+                : (showsActivity || isShowingTrackTitle ? Layout.activitySideWidth : 0)
             let extra = 2 * sideWidth
-            return CGSize(width: notch.width + extra, height: notch.height)
+            let height = notch.height + (isShowingTrackTitle ? Layout.trackTitleHeight : 0)
+            return CGSize(width: notch.width + extra, height: height)
         }
     }
 
@@ -198,7 +224,10 @@ final class NotchViewModel {
     }
 
     var bottomRadius: CGFloat {
-        state == .open ? Layout.openBottomRadius : Layout.closedBottomRadius
+        if state == .open {
+            return Layout.openBottomRadius
+        }
+        return isShowingTrackTitle ? Layout.lidBottomRadius : Layout.closedBottomRadius
     }
 
     /// The panel is sized once for the tallest open state and never resized, which keeps animations smooth.

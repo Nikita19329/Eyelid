@@ -74,6 +74,51 @@ struct NotchViewModelTests {
         #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.hudSideWidth)
     }
 
+    @Test func trackTitleDropsTheClosedNotchLikeALowerEyelid() {
+        let model = makeModel()
+
+        model.trackTitle = TrackTitle()
+
+        #expect(model.isShowingTrackTitle)
+        #expect(model.bodySize == CGSize(
+            width: 185 + 2 * NotchViewModel.Layout.activitySideWidth,
+            height: 32 + NotchViewModel.Layout.trackTitleHeight
+        ))
+        #expect(model.lowerLidDepth == NotchViewModel.Layout.trackTitleHeight)
+        #expect(model.bottomRadius == NotchViewModel.Layout.lidBottomRadius)
+        // The text runs inside the lid, with room for its descenders.
+        #expect(NotchViewModel.Layout.trackTitleInset >= 4)
+        #expect(NotchViewModel.Layout.trackTitleInset + TrackTitle.fontSize < NotchViewModel.Layout.trackTitleHeight)
+    }
+
+    @Test func titleThatRanPastGoesUnlessAnotherTookItsPlace() {
+        let model = makeModel()
+        let first = TrackTitle()
+        let second = TrackTitle()
+
+        model.trackTitle = second
+        model.finishTrackTitle(first.id)
+        #expect(model.trackTitle == second)
+
+        model.finishTrackTitle(second.id)
+        #expect(model.trackTitle == nil)
+    }
+
+    @Test func otherEventsAndTheOpenNotchHideTheTrackTitle() {
+        let model = makeModel()
+        model.trackTitle = TrackTitle()
+
+        model.hud = HUDEvent(kind: .volume, level: 0.5)
+        #expect(!model.isShowingTrackTitle)
+        #expect(model.bodySize.height == 32)
+        #expect(model.lowerLidDepth == 0)
+        #expect(model.bottomRadius == NotchViewModel.Layout.closedBottomRadius)
+
+        model.hud = nil
+        model.state = .open
+        #expect(!model.isShowingTrackTitle)
+    }
+
     @Test func pointerOnTheNotchOpensIt() {
         let model = makeModel()
 

@@ -15,6 +15,8 @@ struct NowPlayingTrack: Equatable {
     /// The app playing the media. For web media this is the browser.
     var appName: String?
     var appIcon: NSImage?
+    /// The most vivid color of the artwork, if it has one.
+    var artworkColor: ArtworkColor? = nil
 
     var subtitle: String {
         artist.isEmpty ? (appName ?? "") : artist

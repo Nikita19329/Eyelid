@@ -81,6 +81,11 @@ private struct NotchSettings: View {
                     Text("Live activity")
                     Text("Shows the artwork and an equalizer next to the notch while something plays.")
                 }
+
+                Toggle(isOn: $settings.showsTrackTitle) {
+                    Text("Track title")
+                    Text("Shows the title under the notch when something starts playing, in the colors of its artwork.")
+                }
             }
         }
         .formStyle(.grouped)

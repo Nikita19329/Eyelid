@@ -54,6 +54,10 @@ final class NotchCoordinator {
         hud.onEvent = { [weak self] event in
             self?.activeNotch?.show(event)
         }
+        nowPlaying.onPlaybackStart = { [weak self] in
+            guard let self, settings.showsTrackTitle else { return }
+            activeNotch?.showTrackTitle()
+        }
         clipboardShortcut.onPress = { [weak self] in
             self?.toggleClipboard()
         }

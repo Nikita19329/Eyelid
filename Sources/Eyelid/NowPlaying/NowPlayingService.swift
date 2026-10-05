@@ -9,12 +9,40 @@ private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "N
 @Observable
 final class NowPlayingService {
     private(set) var track: NowPlayingTrack?
+    /// Called when something starts playing: a new track, or the same one after a pause. For a track whose title came
+    /// early, as soon as the title is in, so the notch can get going while the rest is on its way.
+    @ObservationIgnored var onPlaybackStart: (@MainActor () -> Void)?
+    /// The start of the track whose title came early is reported already.
+    @ObservationIgnored private var startIsReported = false
 
     @ObservationIgnored private let adapter = MediaRemoteAdapter.locate()
     @ObservationIgnored private var process: Process?
     @ObservationIgnored private var readTask: Task<Void, Never>?
     @ObservationIgnored private var artworkData: Data?
     @ObservationIgnored private var isRunning = false
+    /// macOS reports a new track a moment before its artwork, and some apps resend the previous track's artwork first:
+    /// Yandex Music sends none, the old one, none again, and the new one about 0.65 s after the track changed. For this
+    /// long the notch keeps the previous artwork rather than blinking through those.
+    @ObservationIgnored let artworkGrace: TimeInterval
+    /// Whether the artwork of a new track is on its way. Until then the previous artwork, and its colors, stay.
+    private(set) var isAwaitingArtwork = false
+    @ObservationIgnored private var artworkWait: Task<Void, Never>?
+    /// The artwork shown when the track changed. Getting it again doesn't end the wait.
+    @ObservationIgnored private var replacedArtworkData: Data?
+    /// What the latest update brought, which stays when the wait runs out.
+    @ObservationIgnored private var latestArtwork: (data: Data?, artwork: Artwork?) = (nil, nil)
+
+    /// Yandex Music first sends the new title with everything else still from the previous track, and the rest about
+    /// 0.54 s later. Updates like that wait this long at most for the rest, so the title and artist change together.
+    @ObservationIgnored let earlyTitleWait: TimeInterval
+    /// The latest of those updates, applied if the rest doesn't come.
+    @ObservationIgnored private var earlyTitle: NowPlayingSnapshot?
+    @ObservationIgnored private var earlyTitleTask: Task<Void, Never>?
+
+    init(artworkGrace: TimeInterval = 1, earlyTitleWait: TimeInterval = 1) {
+        self.artworkGrace = artworkGrace
+        self.earlyTitleWait = earlyTitleWait
+    }
 
     func start() {
         guard !isRunning else { return }
@@ -110,24 +138,55 @@ final class NowPlayingService {
         }
     }
 
-    private func apply(_ snapshot: NowPlayingSnapshot?) {
+    /// Internal rather than private for the tests.
+    func apply(_ snapshot: NowPlayingSnapshot?) {
         guard let snapshot else {
             track = nil
             artworkData = nil
+            endArtworkWait()
+            dropEarlyTitle()
             return
         }
+        if let track, Self.isEarlyTitle(snapshot, after: track) {
+            if earlyTitle == nil, snapshot.isPlaying {
+                startIsReported = true
+                onPlaybackStart?()
+            }
+            holdEarlyTitle(snapshot)
+            return
+        }
+        dropEarlyTitle()
+        update(with: snapshot)
+    }
 
-        var artwork = track?.artwork
-        if snapshot.artworkData != artworkData {
-            artworkData = snapshot.artworkData
-            artwork = snapshot.artwork.map { NSImage(cgImage: $0.image, size: .zero) }
+    private func update(with snapshot: NowPlayingSnapshot) {
+        let previous = track
+        let isNewItem = previous.map {
+            $0.title != snapshot.title || $0.artist != snapshot.artist || $0.album != snapshot.album
+        } ?? true
+        if isNewItem {
+            beginArtworkWait()
+        }
+
+        var artwork = previous?.artwork
+        var artworkColor = previous?.artworkColor
+        if isAwaitingArtwork {
+            latestArtwork = (snapshot.artworkData, snapshot.artwork)
+            if let data = snapshot.artworkData, data != replacedArtworkData {
+                // The new track's own artwork.
+                (artwork, artworkColor) = use(data, snapshot.artwork)
+                endArtworkWait()
+            }
+        } else if let data = snapshot.artworkData, data != artworkData {
+            // New artwork for the same track. Updates without any are left out: they come and go as tracks change.
+            (artwork, artworkColor) = use(data, snapshot.artwork)
         }
 
         let appURL = snapshot.appBundleIdentifier.flatMap {
             NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
         }
 
-        track = NowPlayingTrack(
+        let current = NowPlayingTrack(
             title: snapshot.title,
             artist: snapshot.artist,
             album: snapshot.album,
@@ -138,8 +197,81 @@ final class NowPlayingService {
             timestamp: snapshot.timestamp,
             artwork: artwork,
             appName: appURL.flatMap { FileManager.default.displayName(atPath: $0.path).replacing(".app", with: "") },
-            appIcon: appURL.flatMap { Self.standardRangeIcon(forFile: $0.path) }
+            appIcon: appURL.flatMap { Self.standardRangeIcon(forFile: $0.path) },
+            artworkColor: artworkColor
         )
+        track = current
+        if TrackTitle.isWorthShowing(from: previous, to: current), !startIsReported {
+            onPlaybackStart?()
+        }
+        startIsReported = false
+    }
+
+    // MARK: - Early titles
+
+    /// A new title with the artist, album, duration and position of the previous track, which no new track has.
+    nonisolated static func isEarlyTitle(_ snapshot: NowPlayingSnapshot, after track: NowPlayingTrack) -> Bool {
+        snapshot.title != track.title
+            && snapshot.artist == track.artist
+            && snapshot.album == track.album
+            && snapshot.duration == track.duration
+            && snapshot.elapsedTime == track.elapsedTime
+    }
+
+    private func holdEarlyTitle(_ snapshot: NowPlayingSnapshot) {
+        earlyTitle = snapshot
+        guard earlyTitleTask == nil else { return }
+        earlyTitleTask = Task { [weak self, earlyTitleWait] in
+            try? await Task.sleep(for: .seconds(earlyTitleWait))
+            guard !Task.isCancelled, let self else { return }
+            // The rest didn't come: perhaps the next track of an album, of the same length. Show it as it is.
+            let held = earlyTitle
+            dropEarlyTitle()
+            if let held {
+                update(with: held)
+            }
+        }
+    }
+
+    private func dropEarlyTitle() {
+        earlyTitleTask?.cancel()
+        earlyTitleTask = nil
+        earlyTitle = nil
+    }
+
+    /// Shows this artwork from now on.
+    private func use(_ data: Data?, _ decoded: Artwork?) -> (NSImage?, ArtworkColor?) {
+        artworkData = data
+        return (decoded.map { NSImage(cgImage: $0.image, size: .zero) }, decoded?.color)
+    }
+
+    // MARK: - Artwork on its way
+
+    private func beginArtworkWait() {
+        replacedArtworkData = artworkData
+        latestArtwork = (nil, nil)
+        isAwaitingArtwork = true
+        artworkWait?.cancel()
+        artworkWait = Task { [weak self, artworkGrace] in
+            try? await Task.sleep(for: .seconds(artworkGrace))
+            guard !Task.isCancelled else { return }
+            self?.artworkWaitRanOut()
+        }
+    }
+
+    /// No other artwork came: the next track of an album has the same one, or the track has none.
+    private func artworkWaitRanOut() {
+        artworkWait = nil
+        isAwaitingArtwork = false
+        guard var track else { return }
+        (track.artwork, track.artworkColor) = use(latestArtwork.data, latestArtwork.artwork)
+        self.track = track
+    }
+
+    private func endArtworkWait() {
+        artworkWait?.cancel()
+        artworkWait = nil
+        isAwaitingArtwork = false
     }
 
     /// App icons on recent macOS are 16-bit extended-range images, and a single one of them switches
