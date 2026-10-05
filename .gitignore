@@ -1,0 +1,11 @@
+.DS_Store
+
+# SwiftPM and Xcode
+/.build/
+/.swiftpm/
+/Packages/
+xcuserdata/
+DerivedData/
+
+# App bundle produced by scripts/build-app.sh
+/build/
