@@ -86,6 +86,13 @@ private struct VolumeAndBrightnessSettings: View {
     @Bindable var settings: AppSettings
     @State private var devices = OutputDevice.all()
 
+    /// Rows that fit on a 14-inch screen along with the rest of the tab.
+    private static let maxDevicesWithoutScrolling = 5
+
+    private var scrolls: Bool {
+        devices.count > Self.maxDevicesWithoutScrolling
+    }
+
     var body: some View {
         Form {
             Section {
@@ -103,8 +110,9 @@ private struct VolumeAndBrightnessSettings: View {
             }
         }
         .formStyle(.grouped)
-        // A fixed height, so a long device list scrolls instead of pushing the window off the screen.
-        .frame(width: SettingsView.width, height: 560)
+        // Fits the content, unless a long device list would push the window off the screen: then it scrolls.
+        .frame(width: SettingsView.width, height: scrolls ? 560 : nil)
+        .fixedSize(horizontal: true, vertical: !scrolls)
         // On the Form, which always exists: on the list itself, this would run once per device, or never.
         .task {
             while !Task.isCancelled {
