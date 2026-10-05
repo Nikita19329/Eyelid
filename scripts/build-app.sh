@@ -19,8 +19,12 @@ fi
 
 command -v cmake >/dev/null || { echo "error: cmake not found, install it with 'brew install cmake'" >&2; exit 1; }
 
+# Without an explicit target, CMake builds for the macOS it runs on, and older systems can't load the framework.
+DEPLOYMENT_TARGET="$(plutil -extract LSMinimumSystemVersion raw "$ROOT/Resources/Info.plist")"
+
 echo "==> Building mediaremote-adapter"
-cmake -S "$ADAPTER_SRC" -B "$ADAPTER_BUILD" -DCMAKE_BUILD_TYPE=Release >/dev/null
+cmake -S "$ADAPTER_SRC" -B "$ADAPTER_BUILD" -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_OSX_DEPLOYMENT_TARGET="$DEPLOYMENT_TARGET" >/dev/null
 cmake --build "$ADAPTER_BUILD" --target MediaRemoteAdapter >/dev/null
 
 echo "==> Building Eyelid ($CONFIGURATION)"
