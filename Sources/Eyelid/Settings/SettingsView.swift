@@ -223,6 +223,15 @@ private struct AboutSettings: View {
                 LabeledContent("License", value: "GNU GPL v3")
                 Link("Source code on GitHub", destination: URL(string: "https://github.com/Satis-ku/Eyelid")!)
             }
+
+            Section {
+                LabeledContent {
+                    Link("Support Eyelid", destination: Support.url)
+                } label: {
+                    Text("Eyelid is free and open source")
+                    Text("If it's useful to you, you can support its development.")
+                }
+            }
         }
         .formStyle(.grouped)
         .frame(width: SettingsView.width)

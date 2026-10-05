@@ -32,6 +32,10 @@ private struct MenuBarMenu: View {
         }
         .keyboardShortcut(",")
 
+        Button("Support Eyelid…") {
+            NSWorkspace.shared.open(Support.url)
+        }
+
         Divider()
 
         Button("Quit Eyelid") {
