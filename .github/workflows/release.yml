@@ -1,0 +1,109 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  # A dry run that builds and checks the package without publishing it, whenever the release setup changes.
+  pull_request:
+    paths:
+      - .github/workflows/release.yml
+      - .github/release-notes.md
+      - scripts/build-app.sh
+      - Resources/Info.plist
+
+permissions:
+  contents: write
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  release:
+    name: Build and publish
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out with submodules and history
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+          # build-app.sh numbers builds by commit count.
+          fetch-depth: 0
+
+      - name: Read the version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            version="${GITHUB_REF_NAME#v}"
+          else
+            version="0.0.0-dry-run"
+          fi
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Tag $GITHUB_REF_NAME is not vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH-PRERELEASE"
+            exit 1
+          fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Build a universal app
+        run: UNIVERSAL=1 make app
+
+      - name: Check the app
+        run: |
+          app=build/Eyelid.app
+          plist="$app/Contents/Info.plist"
+
+          built="$(plutil -extract CFBundleShortVersionString raw "$plist")"
+          if [[ "$built" != "$VERSION" ]]; then
+            echo "::error::The app reports version $built instead of $VERSION"
+            exit 1
+          fi
+
+          # A binary built for a newer macOS than LSMinimumSystemVersion fails to load on older systems.
+          minimum="$(plutil -extract LSMinimumSystemVersion raw "$plist")"
+          for binary in "$app/Contents/MacOS/Eyelid" "$app/Contents/Frameworks/MediaRemoteAdapter.framework/MediaRemoteAdapter"; do
+            for arch in arm64 x86_64; do
+              minos="$(vtool -arch "$arch" -show-build "$binary" | awk '/minos/ { print $2 }')"
+              if [[ "$minos" != "$minimum" ]]; then
+                echo "::error::$(basename "$binary") ($arch) requires macOS $minos instead of $minimum"
+                exit 1
+              fi
+            done
+          done
+
+          codesign --verify --deep --strict "$app"
+          echo "Eyelid $VERSION ($(plutil -extract CFBundleVersion raw "$plist")), universal, macOS $minimum+"
+
+      - name: Package
+        run: |
+          zip="Eyelid-$VERSION.zip"
+          # ditto keeps the symlinks inside MediaRemoteAdapter.framework.
+          ditto -c -k --keepParent build/Eyelid.app "build/$zip"
+          (cd build && shasum -a 256 "$zip" > "$zip.sha256")
+          cat "build/$zip.sha256"
+
+      - name: Publish the release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          flags=()
+          if [[ "$VERSION" == *-* ]]; then
+            flags+=(--prerelease)
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            "build/Eyelid-$VERSION.zip" "build/Eyelid-$VERSION.zip.sha256" \
+            --title "Eyelid $VERSION" \
+            --notes-file .github/release-notes.md \
+            --generate-notes \
+            --verify-tag \
+            ${flags[@]+"${flags[@]}"}
+
+      - name: Upload the dry-run package
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: Eyelid-${{ env.VERSION }}
+          path: build/Eyelid-*.zip*
+          retention-days: 7
+          if-no-files-found: error
