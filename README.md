@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/images/icon.png" alt="Eyelid's icon: the notch hanging over an eye like an eyelid" width="128">
+<img src="docs/images/icon.png" alt="Eyelid's icon: the top of a MacBook display, with the camera in the notch as an eye and the notch's glowing lower edge as its lower eyelid" width="128">
 
 # Eyelid
 
