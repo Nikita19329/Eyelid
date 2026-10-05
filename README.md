@@ -30,6 +30,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Tabs** in the open notch: Now Playing, the file shelf, and the clipboard history once you turn it on.
 - **Stays out of the way.** No Dock icon, on every Space and over full-screen apps. Clicks pass through to the menu bar while the notch is closed.
 - **Macs without a notch** get a virtual one at the top of the main display.
+- **Several displays.** A notch on the built-in display, on one you choose, or on every display, each with its own hover. The volume HUD, battery and output changes, and the clipboard history show up on the display with the pointer.
 
 ### Now Playing
 
@@ -85,7 +86,7 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 
 | Tab | What's there |
 |---|---|
-| General | Launch at login, the display that shows the notch |
+| General | Launch at login, the displays that show a notch |
 | Notch | Hover delay, haptic feedback, live activity |
 | Volume & Brightness | The HUD, its level style, output changes, and an icon for each output device |
 | Battery | Battery activity |
@@ -172,7 +173,7 @@ make run
 
 ## How it works
 
-**The notch window.** A borderless, non-activating `NSPanel` floats just above the menu bar on every Space. Its size comes from `NSScreen.safeAreaInsets` and the `auxiliaryTopLeftArea` and `auxiliaryTopRightArea` next to the notch. The panel ignores mouse events while closed, so the menu bar under it stays clickable. A global mouse monitor opens it when the pointer enters the notch. Mouse events, unlike key events, don't need the Accessibility permission.
+**The notch window.** A borderless, non-activating `NSPanel` floats just above the menu bar on every Space. Its size comes from `NSScreen.safeAreaInsets` and the `auxiliaryTopLeftArea` and `auxiliaryTopRightArea` next to the notch. The panel ignores mouse events while closed, so the menu bar under it stays clickable. A global mouse monitor opens it when the pointer enters the notch. Mouse events, unlike key events, don't need the Accessibility permission. Each display that shows a notch gets its own panel, and the panels are added, moved and removed as displays come and go.
 
 **Now Playing.** Since macOS 15.4, MediaRemote, the private framework behind the Now Playing widget, only answers Apple's own entitled processes. Eyelid uses [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter): it loads a small framework into Apple's signed `/usr/bin/perl`, which is still allowed to query MediaRemote, and streams updates as JSON lines. Eyelid runs it as a child process and decodes its output.
 
@@ -263,7 +264,6 @@ docs/images/    Images for this README, rendered from Eyelid's own views
 ## Roadmap
 
 - [ ] Calendar: upcoming events
-- [ ] Notches on several displays at once
 - [ ] Automatic updates (Sparkle) and notarization
 
 What's already in each version is in the [release notes](https://github.com/Nikita19329/Eyelid/releases).
