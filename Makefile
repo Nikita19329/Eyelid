@@ -1,4 +1,4 @@
-.PHONY: app debug run test clean
+.PHONY: app debug run test icon clean
 
 app:
 	./scripts/build-app.sh release
@@ -14,6 +14,9 @@ run: app
 
 test:
 	swift test
+
+icon:
+	./scripts/make-icon.sh
 
 clean:
 	rm -rf .build build
