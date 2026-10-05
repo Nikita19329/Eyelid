@@ -54,6 +54,7 @@ make run
 |--------------|------------------------------------------------|
 | `make app`   | Release build of `build/Eyelid.app`            |
 | `make debug` | Debug build of `build/Eyelid.app`              |
+| `make test`  | Runs the unit tests (`swift test`)             |
 | `make clean` | Removes `.build` and `build`                   |
 
 After `make app` has run once, `swift run` from the repository root works too, which is handy for quick iterations. To work in Xcode, open `Package.swift`.
@@ -69,7 +70,7 @@ git tag -a v0.2.0 -m "Eyelid 0.2.0"
 git push origin v0.2.0
 ```
 
-The Release workflow builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version and the signature. Then it publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
+The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version and the signature. Then it publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
 
 ## How it works
 
@@ -85,6 +86,7 @@ Sources/Eyelid/
   Notch/        Notch geometry, panel, shape, hover handling, root view
   NowPlaying/   mediaremote-adapter client, now playing model and views
   Settings/     Preferences, Settings window, launch at login
+Tests/          Unit tests (Swift Testing) for the logic that needs no screen
 Resources/      Info.plist
 scripts/        build-app.sh: assembles and signs Eyelid.app without an Xcode project
 Vendor/         mediaremote-adapter (git submodule)
@@ -106,7 +108,9 @@ Vendor/         mediaremote-adapter (git submodule)
 
 Issues and pull requests are welcome. For anything bigger than a small fix, please open an issue first so we can agree on the approach.
 
-GitHub Actions builds every pull request and every push to `main` on macOS 26 with the runner's default Xcode. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
+GitHub Actions builds and tests every pull request and every push to `main` on macOS 26 with the runner's default Xcode. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
+
+The tests cover what can be checked without a screen: decoding the adapter's output, playback time, notch layout and hover areas, and settings. Behavior on screen, such as hovering, haptics and the look of the notch, still needs a try on a real Mac. Mention what you checked in your pull request.
 
 ## License
 
