@@ -8,8 +8,6 @@ struct TrackTitle: Equatable, Identifiable {
     let artist: String
     /// The width of the title and artist in one line, in points.
     let textWidth: CGFloat
-    /// When it appeared. Scrolling starts from here.
-    let date: Date
 
     static let fontSize: CGFloat = 12
     /// Room between the end of the text and its next copy while it scrolls.
@@ -25,10 +23,9 @@ struct TrackTitle: Equatable, Identifiable {
     /// And stays this long after its first pass.
     static let tail: TimeInterval = 0.8
 
-    init(title: String, artist: String, date: Date = .now) {
+    init(title: String, artist: String) {
         self.title = title
         self.artist = artist
-        self.date = date
         textWidth = Self.measure(title: title, artist: artist)
     }
 
@@ -81,7 +78,7 @@ struct TrackTitle: Equatable, Identifiable {
         return Self.lead + TimeInterval(loopLength / speed) + Self.tail
     }
 
-    /// How far the text has scrolled to the left, after `elapsed` seconds on screen.
+    /// How far the text has scrolled to the left, `elapsed` seconds after it showed.
     func offset(after elapsed: TimeInterval, in width: CGFloat) -> CGFloat {
         guard scrolls(in: width), elapsed > Self.lead else { return 0 }
         let distance = CGFloat(elapsed - Self.lead) * speed

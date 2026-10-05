@@ -17,15 +17,20 @@ final class NowPlayingService {
     @ObservationIgnored private var readTask: Task<Void, Never>?
     @ObservationIgnored private var artworkData: Data?
     @ObservationIgnored private var isRunning = false
-    /// macOS reports a new track a moment before its artwork. For this long the notch keeps the previous artwork rather
-    /// than blinking to the placeholder, and the title waits to show in the new artwork's colors.
-    @ObservationIgnored private let artworkGrace: Duration
-    /// Running while the artwork of a new track is on its way.
+    /// macOS reports a new track a moment before its artwork, and some apps resend the previous track's artwork first:
+    /// Yandex Music sends none, the old one, none again, and the new one about 0.65 s after the track changed. For this
+    /// long the notch keeps the previous artwork rather than blinking through those.
+    @ObservationIgnored let artworkGrace: TimeInterval
+    /// Whether the artwork of a new track is on its way. The title under the notch stays hidden until then, so it shows
+    /// in the colors of the new artwork from the start.
+    private(set) var isAwaitingArtwork = false
     @ObservationIgnored private var artworkWait: Task<Void, Never>?
-    /// Playback that started while its artwork was on its way, reported once the artwork is here or the wait is over.
-    @ObservationIgnored private var startsWithArtwork = false
+    /// The artwork shown when the track changed. Getting it again doesn't end the wait.
+    @ObservationIgnored private var replacedArtworkData: Data?
+    /// What the latest update brought, which stays when the wait runs out.
+    @ObservationIgnored private var latestArtwork: (data: Data?, artwork: Artwork?) = (nil, nil)
 
-    init(artworkGrace: Duration = .milliseconds(800)) {
+    init(artworkGrace: TimeInterval = 1) {
         self.artworkGrace = artworkGrace
     }
 
@@ -128,7 +133,7 @@ final class NowPlayingService {
         guard let snapshot else {
             track = nil
             artworkData = nil
-            stopWaitingForArtwork()
+            endArtworkWait()
             return
         }
 
@@ -136,21 +141,22 @@ final class NowPlayingService {
         let isNewItem = previous.map {
             $0.title != snapshot.title || $0.artist != snapshot.artist || $0.album != snapshot.album
         } ?? true
+        if isNewItem {
+            beginArtworkWait()
+        }
 
         var artwork = previous?.artwork
         var artworkColor = previous?.artworkColor
-        if snapshot.artworkData == nil, isNewItem || artworkWait != nil {
-            // A new track without artwork yet. It's probably on its way: keep what's shown for a moment.
-            waitForArtwork()
-        } else {
-            if snapshot.artworkData != artworkData {
-                artworkData = snapshot.artworkData
-                artwork = snapshot.artwork.map { NSImage(cgImage: $0.image, size: .zero) }
-                artworkColor = snapshot.artwork?.color
+        if isAwaitingArtwork {
+            latestArtwork = (snapshot.artworkData, snapshot.artwork)
+            if let data = snapshot.artworkData, data != replacedArtworkData {
+                // The new track's own artwork.
+                (artwork, artworkColor) = use(data, snapshot.artwork)
+                endArtworkWait()
             }
-            // Also when the same artwork came back, for the next track of the same album.
-            artworkWait?.cancel()
-            artworkWait = nil
+        } else if let data = snapshot.artworkData, data != artworkData {
+            // New artwork for the same track. Updates without any are left out: they come and go as tracks change.
+            (artwork, artworkColor) = use(data, snapshot.artwork)
         }
 
         let appURL = snapshot.appBundleIdentifier.flatMap {
@@ -173,53 +179,43 @@ final class NowPlayingService {
         )
         track = current
         if TrackTitle.isWorthShowing(from: previous, to: current) {
-            reportStart(of: current)
-        } else if startsWithArtwork, artworkWait == nil {
-            // The artwork came.
-            reportStart(of: current)
+            onPlaybackStart?(current)
         }
+    }
+
+    /// Shows this artwork from now on.
+    private func use(_ data: Data?, _ decoded: Artwork?) -> (NSImage?, ArtworkColor?) {
+        artworkData = data
+        return (decoded.map { NSImage(cgImage: $0.image, size: .zero) }, decoded?.color)
     }
 
     // MARK: - Artwork on its way
 
-    private func waitForArtwork() {
-        guard artworkWait == nil else { return }
+    private func beginArtworkWait() {
+        replacedArtworkData = artworkData
+        latestArtwork = (nil, nil)
+        isAwaitingArtwork = true
+        artworkWait?.cancel()
         artworkWait = Task { [weak self, artworkGrace] in
-            try? await Task.sleep(for: artworkGrace)
+            try? await Task.sleep(for: .seconds(artworkGrace))
             guard !Task.isCancelled else { return }
-            self?.artworkDidNotCome()
+            self?.artworkWaitRanOut()
         }
     }
 
-    /// The new track has no artwork after all.
-    private func artworkDidNotCome() {
+    /// No other artwork came: the next track of an album has the same one, or the track has none.
+    private func artworkWaitRanOut() {
         artworkWait = nil
-        artworkData = nil
+        isAwaitingArtwork = false
         guard var track else { return }
-        track.artwork = nil
-        track.artworkColor = nil
+        (track.artwork, track.artworkColor) = use(latestArtwork.data, latestArtwork.artwork)
         self.track = track
-        if startsWithArtwork {
-            reportStart(of: track)
-        }
     }
 
-    private func stopWaitingForArtwork() {
+    private func endArtworkWait() {
         artworkWait?.cancel()
         artworkWait = nil
-        startsWithArtwork = false
-    }
-
-    /// Reports a start now, or once the artwork is settled, so the title shows in its colors from the first frame.
-    private func reportStart(of track: NowPlayingTrack) {
-        guard artworkWait == nil else {
-            startsWithArtwork = true
-            return
-        }
-        startsWithArtwork = false
-        if track.isPlaying {
-            onPlaybackStart?(track)
-        }
+        isAwaitingArtwork = false
     }
 
     /// App icons on recent macOS are 16-bit extended-range images, and a single one of them switches

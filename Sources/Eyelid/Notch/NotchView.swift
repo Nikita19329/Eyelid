@@ -43,7 +43,12 @@ struct NotchView: View {
 
                 // Below the hardware notch, where the notch drops like a lower eyelid.
                 if model.isShowingTrackTitle, let title = model.trackTitle {
-                    TrackTitleView(title: title, color: model.nowPlaying.track?.artworkColor, width: model.trackTitleWidth)
+                    TrackTitleView(
+                        title: title,
+                        color: model.nowPlaying.track?.artworkColor,
+                        width: model.trackTitleWidth,
+                        isReady: !model.nowPlaying.isAwaitingArtwork
+                    )
                         .frame(height: NotchViewModel.Layout.trackTitleHeight - NotchViewModel.Layout.lowerLidDepth)
                         .id(title.id)
                         .transition(.opacity.combined(with: .offset(y: -8)))

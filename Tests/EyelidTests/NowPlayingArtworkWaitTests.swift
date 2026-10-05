@@ -38,59 +38,66 @@ struct NowPlayingArtworkWaitTests {
     }
 
     private func service(_ starts: Starts) -> NowPlayingService {
-        let service = NowPlayingService(artworkGrace: .milliseconds(60))
+        let service = NowPlayingService(artworkGrace: 0.06)
         service.onPlaybackStart = { track in
             starts.titles.append(track.title)
         }
         return service
     }
 
-    @Test func newTrackKeepsThePreviousArtworkUntilItsOwnComes() throws {
+    /// What Yandex Music sends as the track changes: no artwork, the previous track's, none again, then its own.
+    @Test func keepsThePreviousArtworkUntilTheNewTracksOwnComes() throws {
         let starts = Starts()
         let service = service(starts)
         let red = try png(red: 0.9, green: 0.1, blue: 0.1)
         let blue = try png(red: 0.1, green: 0.2, blue: 0.9)
-
         service.apply(try snapshot("One", artwork: red))
-        service.apply(try snapshot("Two"))
+        #expect(!service.isAwaitingArtwork)
 
-        #expect(service.track?.title == "Two")
-        #expect(service.track?.artwork != nil)
-        // The title waits for the artwork.
-        #expect(starts.titles == ["One"])
+        service.apply(try snapshot("Two"))
+        // The notch reacts right away, and the title waits for the artwork.
+        #expect(starts.titles == ["One", "Two"])
+        #expect(service.isAwaitingArtwork)
+        for update in [try snapshot("Two", artwork: red), try snapshot("Two")] {
+            service.apply(update)
+            #expect(service.isAwaitingArtwork)
+            #expect((service.track?.artworkColor?.red ?? 0) > 0.8)
+        }
 
         service.apply(try snapshot("Two", artwork: blue))
 
-        #expect(starts.titles == ["One", "Two"])
+        #expect(!service.isAwaitingArtwork)
         #expect((service.track?.artworkColor?.blue ?? 0) > 0.8)
+        #expect(starts.titles == ["One", "Two"])
     }
 
     @Test func trackWithoutArtworkShowsOnceTheWaitIsOver() async throws {
         let starts = Starts()
         let service = service(starts)
-
         service.apply(try snapshot("One", artwork: try png(red: 0.9, green: 0.1, blue: 0.1)))
+
         service.apply(try snapshot("Two"))
         try await Task.sleep(for: .milliseconds(250))
 
+        #expect(!service.isAwaitingArtwork)
         #expect(service.track?.title == "Two")
         #expect(service.track?.artwork == nil)
         #expect(service.track?.artworkColor == nil)
-        #expect(starts.titles == ["One", "Two"])
     }
 
     @Test func nextTrackOfTheSameAlbumKeepsItsArtwork() async throws {
         let starts = Starts()
         let service = service(starts)
         let cover = try png(red: 0.2, green: 0.8, blue: 0.3)
-
         service.apply(try snapshot("One", artwork: cover))
+
         service.apply(try snapshot("Two"))
         service.apply(try snapshot("Two", artwork: cover))
         try await Task.sleep(for: .milliseconds(250))
 
+        #expect(!service.isAwaitingArtwork)
         #expect(service.track?.artwork != nil)
-        #expect(starts.titles == ["One", "Two"])
+        #expect((service.track?.artworkColor?.green ?? 0) > 0.7)
     }
 
     @Test func resumingShowsTheTitleRightAway() throws {
@@ -103,17 +110,16 @@ struct NowPlayingArtworkWaitTests {
         service.apply(try snapshot("One", artwork: cover))
 
         #expect(starts.titles == ["One", "One"])
+        #expect(!service.isAwaitingArtwork)
     }
 
-    @Test func pausedBeforeTheArtworkCameShowsNothing() async throws {
+    @Test func updatesWithoutArtworkLeaveTheTrackAsItIs() throws {
         let starts = Starts()
         let service = service(starts)
-
         service.apply(try snapshot("One", artwork: try png(red: 0.9, green: 0.1, blue: 0.1)))
-        service.apply(try snapshot("Two"))
-        service.apply(try snapshot("Two", playing: false))
-        try await Task.sleep(for: .milliseconds(250))
 
-        #expect(starts.titles == ["One"])
+        service.apply(try snapshot("One"))
+
+        #expect(service.track?.artwork != nil)
     }
 }

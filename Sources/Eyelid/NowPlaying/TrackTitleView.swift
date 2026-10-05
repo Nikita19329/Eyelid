@@ -6,6 +6,12 @@ struct TrackTitleView: View {
     let color: ArtworkColor?
     /// Room for the text, in points.
     let width: CGFloat
+    /// False while the artwork is on its way. The notch opens right away, and the text follows in the colors of the
+    /// artwork.
+    let isReady: Bool
+
+    /// When the text showed, which scrolling starts from.
+    @State private var revealedAt: Date?
 
     /// Where the scrolling text fades in and out at the sides.
     private static let fadeWidth: CGFloat = 14
@@ -17,8 +23,9 @@ struct TrackTitleView: View {
     var body: some View {
         Group {
             if title.scrolls(in: width) {
-                TimelineView(.animation) { context in
-                    let offset = title.offset(after: context.date.timeIntervalSince(title.date), in: width)
+                TimelineView(.animation(paused: revealedAt == nil)) { context in
+                    let elapsed = revealedAt.map { context.date.timeIntervalSince($0) } ?? 0
+                    let offset = title.offset(after: elapsed, in: width)
                     // Two copies, so the next one follows the first in from the right.
                     HStack(spacing: TrackTitle.gap) {
                         label
@@ -35,7 +42,14 @@ struct TrackTitleView: View {
                     .frame(width: width)
             }
         }
+        .opacity(isReady ? 1 : 0)
+        .animation(.easeOut(duration: 0.25), value: isReady)
         .animation(.easeInOut(duration: 0.4), value: color)
+        .onChange(of: isReady, initial: true) { _, isReady in
+            if isReady, revealedAt == nil {
+                revealedAt = .now
+            }
+        }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel([title.title, title.detail].compactMap(\.self).joined(separator: ", "))
     }
