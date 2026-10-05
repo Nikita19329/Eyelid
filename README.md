@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/icon.png" alt="Eyelid's icon: the top of a MacBook display, with the camera in the notch as an eye and the notch's glowing lower edge as its lower eyelid" width="128">
+
 # Eyelid
 
 **An open-source, Dynamic Island–style notch for your MacBook.**
@@ -118,6 +120,7 @@ make run
 | `make app`   | Release build of `build/Eyelid.app`                                   |
 | `make debug` | Debug build of `build/Eyelid.app`                                     |
 | `make test`  | Runs the unit tests                                                   |
+| `make icon`  | Renders the app icon from `scripts/render-icon.swift` and packs it     |
 | `make clean` | Removes `.build` and `build`                                          |
 
 - **Quick iterations:** after `make app` has run once, `swift run` from the repository root works too. To work in Xcode, open `Package.swift`.
@@ -192,8 +195,8 @@ Sources/Eyelid/
   HUD/          Media key tap, volume (CoreAudio), brightness (DisplayServices), device icons, HUD view
   Settings/     Preferences, Settings window, launch at login
 Tests/          Unit tests (Swift Testing) for the logic that needs no screen
-Resources/      Info.plist
-scripts/        build-app.sh: builds, stamps and signs Eyelid.app without an Xcode project
+Resources/      Info.plist, AppIcon.icns
+scripts/        build-app.sh builds, stamps and signs Eyelid.app; render-icon.swift draws the icon
 Vendor/         mediaremote-adapter (git submodule)
 docs/images/    Images for this README, rendered from Eyelid's own views
 ```
