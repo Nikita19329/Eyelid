@@ -191,4 +191,14 @@ struct NotchViewModelTests {
 
         #expect(closed)
     }
+
+    @Test func connectedHeadphonesComeBeforeABatteryEvent() {
+        let model = makeModel()
+        model.batteryEvent = .unplugged(BatteryState(level: 50, isPluggedIn: false, isCharging: false))
+
+        model.headphones = HeadphonesEvent(deviceID: "airpods", name: "AirPods Pro", icon: .airpodsPro)
+
+        #expect(model.showsActivity)
+        #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.hudSideWidth)
+    }
 }

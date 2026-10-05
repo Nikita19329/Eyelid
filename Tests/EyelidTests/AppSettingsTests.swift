@@ -12,6 +12,7 @@ struct AppSettingsTests {
         #expect(settings.hapticsEnabled)
         #expect(settings.showsLiveActivity)
         #expect(settings.batteryActivityEnabled)
+        #expect(settings.headphonesActivityEnabled)
         #expect(!settings.replacesSystemHUD)
         #expect(settings.hudLevelStyle == .bar)
         #expect(settings.deviceIcons.isEmpty)
@@ -29,6 +30,7 @@ struct AppSettingsTests {
         settings.hapticsEnabled = false
         settings.showsLiveActivity = false
         settings.batteryActivityEnabled = false
+        settings.headphonesActivityEnabled = false
         settings.replacesSystemHUD = true
         settings.hudLevelStyle = .segments
         settings.deviceIcons = ["headset-uid": .headset]
@@ -44,6 +46,7 @@ struct AppSettingsTests {
         #expect(!relaunched.hapticsEnabled)
         #expect(!relaunched.showsLiveActivity)
         #expect(!relaunched.batteryActivityEnabled)
+        #expect(!relaunched.headphonesActivityEnabled)
         #expect(relaunched.replacesSystemHUD)
         #expect(relaunched.hudLevelStyle == .segments)
         #expect(relaunched.deviceIcons == ["headset-uid": .headset])

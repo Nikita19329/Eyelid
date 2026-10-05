@@ -11,6 +11,7 @@ final class AppSettings {
         static let hapticsEnabled = "hapticsEnabled"
         static let showsLiveActivity = "showsLiveActivity"
         static let batteryActivityEnabled = "batteryActivityEnabled"
+        static let headphonesActivityEnabled = "headphonesActivityEnabled"
         static let replacesSystemHUD = "replacesSystemHUD"
         static let hudLevelStyle = "hudLevelStyle"
         static let deviceIcons = "deviceIcons"
@@ -41,6 +42,11 @@ final class AppSettings {
     /// Whether plugging in, unplugging and a low battery briefly show the charge next to the notch.
     var batteryActivityEnabled: Bool {
         didSet { defaults.set(batteryActivityEnabled, forKey: Key.batteryActivityEnabled) }
+    }
+
+    /// Whether connecting AirPods and other Bluetooth headphones briefly shows them, with their charge, next to the notch.
+    var headphonesActivityEnabled: Bool {
+        didSet { defaults.set(headphonesActivityEnabled, forKey: Key.headphonesActivityEnabled) }
     }
 
     /// Whether Eyelid handles the volume and brightness keys and shows the change next to the notch
@@ -103,6 +109,7 @@ final class AppSettings {
         hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
         showsLiveActivity = defaults.object(forKey: Key.showsLiveActivity) as? Bool ?? true
         batteryActivityEnabled = defaults.object(forKey: Key.batteryActivityEnabled) as? Bool ?? true
+        headphonesActivityEnabled = defaults.object(forKey: Key.headphonesActivityEnabled) as? Bool ?? true
         replacesSystemHUD = defaults.object(forKey: Key.replacesSystemHUD) as? Bool ?? false
         hudLevelStyle = (defaults.object(forKey: Key.hudLevelStyle) as? String).flatMap(LevelStyle.init(rawValue:)) ?? .bar
         deviceIcons = (defaults.object(forKey: Key.deviceIcons) as? [String: String] ?? [:])

@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
     private let battery = BatteryService()
+    private lazy var headphones = HeadphonesService(settings: settings)
     let shelf = Shelf()
     let clipboard = ClipboardHistory()
     private let hotKeys = HotKeyCenter()
@@ -20,10 +21,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         nowPlaying.start()
         battery.start()
+        headphones.start()
         shelf.deleteUnusedPromisedFiles()
         notchController = NotchWindowController(
             nowPlaying: nowPlaying,
             battery: battery,
+            headphones: headphones,
             shelf: shelf,
             clipboard: clipboard,
             clipboardShortcut: clipboardShortcut,

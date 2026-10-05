@@ -143,6 +143,11 @@ private struct BatterySettings: View {
                     Text("Battery activity")
                     Text("Shows the charge next to the notch when you plug in or unplug the charger, and when the battery drops to 20% and 10%.")
                 }
+
+                Toggle(isOn: $settings.headphonesActivityEnabled) {
+                    Text("Headphones")
+                    Text("Shows AirPods and other Bluetooth headphones next to the notch when they connect, with the charge of AirPods and Beats.")
+                }
             }
         }
         .formStyle(.grouped)
