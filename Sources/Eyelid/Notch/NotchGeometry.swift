@@ -47,20 +47,26 @@ struct NotchGeometry: Equatable {
 
 /// Which displays show a notch.
 enum NotchDisplays: Hashable {
-    /// The built-in display if it has a notch, otherwise the main display.
+    /// The display with the pointer, so the notch follows the user from display to display.
     case automatic
     case all
     /// One display, or the automatic choice while it isn't connected.
     case display(CGDirectDisplayID)
 
-    /// Picks from the displays connected now, the main display first.
-    func pick(from displays: [(id: CGDirectDisplayID, hasNotch: Bool)]) -> [CGDirectDisplayID] {
+    /// Picks from the displays connected now, the main display first, given the display with the pointer.
+    func pick(
+        from displays: [(id: CGDirectDisplayID, hasNotch: Bool)],
+        pointerOn pointerDisplay: CGDirectDisplayID?
+    ) -> [CGDirectDisplayID] {
         switch self {
         case .all:
             return displays.map(\.id)
         case .display(let id) where displays.contains(where: { $0.id == id }):
             return [id]
+        case .automatic where displays.contains(where: { $0.id == pointerDisplay }):
+            return pointerDisplay.map { [$0] } ?? []
         case .automatic, .display:
+            // Without a pointer to follow, or with the chosen display unplugged: the one with a notch, or the main one.
             let display = displays.first(where: \.hasNotch) ?? displays.first
             return display.map { [$0.id] } ?? []
         }
@@ -70,14 +76,24 @@ enum NotchDisplays: Hashable {
     @MainActor
     var screens: [NSScreen] {
         let screens = NSScreen.screens
-        let picked = pick(from: screens.compactMap { screen in
-            screen.displayID.map { (id: $0, hasNotch: screen.safeAreaInsets.top > 0) }
-        })
+        let picked = pick(
+            from: screens.compactMap { screen in
+                screen.displayID.map { (id: $0, hasNotch: screen.safeAreaInsets.top > 0) }
+            },
+            pointerOn: NSScreen.withPointer?.displayID
+        )
         return picked.compactMap { id in screens.first { $0.displayID == id } }
     }
 }
 
 extension NSScreen {
+    /// The screen the pointer is on.
+    @MainActor
+    static var withPointer: NSScreen? {
+        let pointer = NSEvent.mouseLocation
+        return screens.first { NSMouseInRect(pointer, $0.frame, false) }
+    }
+
     var displayID: CGDirectDisplayID? {
         (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }

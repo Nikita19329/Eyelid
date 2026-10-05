@@ -49,7 +49,7 @@ private struct GeneralSettings: View {
                     }
                 } label: {
                     Text("Display")
-                    Text("Automatic uses the built-in display if it has a notch. Displays without one get a notch drawn at the top.")
+                    Text("Automatic follows the pointer from display to display. Displays without a notch get one drawn at the top.")
                 }
             }
         }

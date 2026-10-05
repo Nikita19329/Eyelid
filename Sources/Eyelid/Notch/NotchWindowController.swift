@@ -296,6 +296,11 @@ final class NotchWindowController {
 // MARK: - Clipboard
 
 extension NotchWindowController {
+    /// Whether the notch is open, for hover, a drag or the clipboard history.
+    var isOpen: Bool {
+        model.state == .open
+    }
+
     /// Whether the clipboard history is open and holding the notch open.
     var isHoldingClipboardOpen: Bool {
         model.isHeldOpen
