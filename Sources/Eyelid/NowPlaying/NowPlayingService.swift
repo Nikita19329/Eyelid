@@ -9,8 +9,11 @@ private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "N
 @Observable
 final class NowPlayingService {
     private(set) var track: NowPlayingTrack?
-    /// Called when something starts playing: a new track, or the same one after a pause.
-    @ObservationIgnored var onPlaybackStart: (@MainActor (NowPlayingTrack) -> Void)?
+    /// Called when something starts playing: a new track, or the same one after a pause. For a track whose title came
+    /// early, as soon as the title is in, so the notch can get going while the rest is on its way.
+    @ObservationIgnored var onPlaybackStart: (@MainActor () -> Void)?
+    /// The start of the track whose title came early is reported already.
+    @ObservationIgnored private var startIsReported = false
 
     @ObservationIgnored private let adapter = MediaRemoteAdapter.locate()
     @ObservationIgnored private var process: Process?
@@ -145,6 +148,10 @@ final class NowPlayingService {
             return
         }
         if let track, Self.isEarlyTitle(snapshot, after: track) {
+            if earlyTitle == nil, snapshot.isPlaying {
+                startIsReported = true
+                onPlaybackStart?()
+            }
             holdEarlyTitle(snapshot)
             return
         }
@@ -194,9 +201,10 @@ final class NowPlayingService {
             artworkColor: artworkColor
         )
         track = current
-        if TrackTitle.isWorthShowing(from: previous, to: current) {
-            onPlaybackStart?(current)
+        if TrackTitle.isWorthShowing(from: previous, to: current), !startIsReported {
+            onPlaybackStart?()
         }
+        startIsReported = false
     }
 
     // MARK: - Early titles

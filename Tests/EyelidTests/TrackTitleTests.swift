@@ -45,43 +45,55 @@ struct TrackTitleTests {
         #expect(!TrackTitle.isWorthShowing(from: nil, to: track("")))
     }
 
-    @Test func shortTitleStaysPutForAMoment() {
-        let title = TrackTitle(title: "Song", artist: "Artist")
+    @Test func measuresEachCharacterInTheLine() {
+        let line = TitleLine(title: "Йод 🎧", artist: "Би-2")
 
-        #expect(!title.scrolls(in: 240))
-        #expect(title.duration(in: 240) == TrackTitle.shortDuration)
-        #expect(title.offset(after: 5, in: 240) == 0)
+        #expect(line.characters.map(\.text).joined() == "Йод 🎧" + TrackTitle.separator + "Би-2")
+        // The emoji is one character, not two halves.
+        #expect(line.characters.contains { $0.text == "🎧" })
+        #expect(zip(line.characters, line.characters.dropFirst()).allSatisfy { $0.offset < $1.offset })
+        #expect(line.characters.filter(\.isDetail).map(\.text).joined() == TrackTitle.separator + "Би-2")
+        #expect(abs((line.characters.last.map { $0.offset + $0.width } ?? 0) - line.width) < 1)
     }
 
     @Test func artistMakesTheLineLonger() {
-        let alone = TrackTitle(title: "Song", artist: "")
-        let withArtist = TrackTitle(title: "Song", artist: "Artist")
-
-        #expect(alone.detail == nil)
-        #expect(withArtist.detail == "Artist")
-        #expect(withArtist.textWidth > alone.textWidth)
+        #expect(TitleLine(title: "Song", artist: "Artist").width > TitleLine(title: "Song", artist: "").width)
     }
 
-    @Test func longTitleScrollsOncePastItsStart() {
-        let title = TrackTitle(title: String(repeating: "Long title ", count: 6), artist: "Artist")
-        let width: CGFloat = 240
+    @Test func textComesInAtTheRightAndLeavesAtTheLeft() {
+        let width: CGFloat = 120
+        let length: CGFloat = 300
+        let duration = TrackTitle.duration(textWidth: width, pathLength: length)
 
-        #expect(title.scrolls(in: width))
-        // Still at first, so the start can be read.
-        #expect(title.offset(after: TrackTitle.lead / 2, in: width) == 0)
-        #expect(abs(title.offset(after: TrackTitle.lead + 1, in: width) - title.speed) < 0.001)
-        // One full pass brings the next copy to where the text started.
-        let pass = TimeInterval(title.loopLength / title.speed)
-        #expect(abs(title.offset(after: TrackTitle.lead + pass, in: width)) < 0.001
-            || abs(title.offset(after: TrackTitle.lead + pass, in: width) - title.loopLength) < 0.001)
-        #expect(abs(title.duration(in: width) - (TrackTitle.lead + pass + TrackTitle.tail)) < 0.001)
+        #expect(TrackTitle.textStart(after: 0, textWidth: width, pathLength: length) == length - TrackTitle.lead)
+        #expect(TrackTitle.textStart(after: 1, textWidth: width, pathLength: length) == length - TrackTitle.lead - TrackTitle.speed)
+        // Gone past the left end when it's over.
+        #expect(abs(TrackTitle.textStart(after: duration, textWidth: width, pathLength: length) + width) < 0.001)
     }
 
-    @Test func veryLongTitleScrollsFasterToFitInTime() {
-        let title = TrackTitle(title: String(repeating: "Very long title ", count: 40), artist: "")
+    @Test func longTitlesRunFasterToFitInTime() {
+        let width: CGFloat = 900
 
-        #expect(title.speed > TrackTitle.scrollSpeed)
-        #expect(abs(title.duration(in: 240) - TrackTitle.maxDuration) < 0.001)
+        #expect(TrackTitle.speed(textWidth: width, pathLength: 300) > TrackTitle.speed)
+        #expect(abs(TrackTitle.duration(textWidth: width, pathLength: 300) - TrackTitle.maxDuration) < 0.001)
+    }
+
+    @Test func curveRunsAlongTheLidFromCornerToCorner() throws {
+        let curve = LidCurve(width: 269, depth: 44, inset: 16)
+
+        let left = try #require(curve.point(at: 0))
+        let middle = try #require(curve.point(at: curve.length / 2))
+        let right = try #require(curve.point(at: curve.length))
+
+        #expect(curve.length > 269)
+        #expect(abs(left.position.x) < 0.001 && abs(left.position.y + 16) < 0.001)
+        #expect(abs(middle.position.x - 134.5) < 0.5)
+        #expect(abs(middle.position.y - (44 - 16)) < 0.5)
+        #expect(abs(middle.angle) < 0.05)
+        #expect(abs(right.position.x - 269) < 0.001)
+        // Down into the lid on the left, back up on the right.
+        #expect(left.angle > 0.5 && right.angle < -0.5)
+        #expect(curve.point(at: -1) == nil && curve.point(at: curve.length + 1) == nil)
     }
 }
 

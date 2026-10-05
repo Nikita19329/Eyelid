@@ -167,17 +167,17 @@ final class NotchWindowController {
 
     // MARK: - Track title
 
-    /// Drops the notch down for a moment to show what started playing. The open notch shows the track in full
-    /// already.
-    func show(_ title: TrackTitle) {
+    /// Drops the lower lid to run what started playing along it. The open notch shows the track in full already.
+    func showTrackTitle() {
         guard model.state == .closed else { return }
+        let title = TrackTitle()
         model.trackTitle = title
-        let duration = title.duration(in: model.trackTitleWidth)
+        // The title ends itself once it has run past. This is in case it never shows, behind the HUD for one.
         trackTitleTask?.cancel()
         trackTitleTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(duration))
+            try? await Task.sleep(for: .seconds(TrackTitle.maxDuration + 2))
             guard !Task.isCancelled else { return }
-            self?.model.trackTitle = nil
+            self?.model.finishTrackTitle(title.id)
         }
     }
 

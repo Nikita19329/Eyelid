@@ -47,16 +47,19 @@ struct NotchView: View {
                 .frame(height: model.geometry.notchSize.height)
 
                 // Below the hardware notch, where the notch drops like a lower eyelid.
-                if model.isShowingTrackTitle, let title = model.trackTitle {
+                if model.isShowingTrackTitle, let title = model.trackTitle, let track = model.nowPlaying.track {
                     TrackTitleView(
                         title: title,
+                        line: TitleLine(title: track.title, artist: track.artist),
                         // The previous track's colors until the new artwork is here, then a blend into its own.
-                        color: model.nowPlaying.track?.artworkColor,
-                        width: model.trackTitleWidth
-                    )
-                        .frame(height: NotchViewModel.Layout.trackTitleTextHeight)
-                        .id(title.id)
-                        .transition(.opacity.combined(with: .offset(y: -8)))
+                        color: track.artworkColor,
+                        size: CGSize(width: model.bodySize.width, height: NotchViewModel.Layout.trackTitleHeight),
+                        inset: NotchViewModel.Layout.trackTitleInset
+                    ) {
+                        model.finishTrackTitle(title.id)
+                    }
+                    .id(title.id)
+                    .transition(.opacity)
                 }
             }
         }

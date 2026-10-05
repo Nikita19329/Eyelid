@@ -32,19 +32,14 @@ final class NotchViewModel {
         static let batteryEventDuration: TimeInterval = 3
         /// How long a new sound output stays next to the closed notch, in seconds.
         static let outputEventDuration: TimeInterval = 3
-        /// How far the closed notch drops below the hardware notch to show the track title, like a lower eyelid.
-        static let trackTitleHeight: CGFloat = 36
-        /// The line of text at the top of that, on solid black.
-        static let trackTitleTextHeight: CGFloat = 19
-        /// Below the text, the lid fades out like smudged mascara over this height.
-        static let lidFadeHeight: CGFloat = 17
-        /// Rounder bottom corners for the lid, which soften as it fades.
-        static let lidBottomRadius: CGFloat = 18
-        /// How much the bottom edge curves while it shows the track title: the middle hangs this much lower than the
-        /// corners.
-        static let lowerLidDepth: CGFloat = 5
-        /// Room between the track title and the sides of the notch.
+        /// How far the lower lid hangs below the hardware notch, in the middle, to show the track title.
+        static let trackTitleHeight: CGFloat = 44
+        /// How far above the bottom of the lid the title runs.
         static let trackTitleInset: CGFloat = 16
+        /// The bottom of the lid fades out like smudged mascara over this height.
+        static let lidFadeHeight: CGFloat = 14
+        /// The corners of the lid are pointed, like the corners of an eye.
+        static let lidBottomRadius: CGFloat = 2
         /// Transparent margin around the open notch so its shadow is not clipped.
         static let shadowPadding: CGFloat = 40
         /// How far around the closed notch dragged files open it, which makes the notch easier to hit.
@@ -197,19 +192,21 @@ final class NotchViewModel {
         state == .closed && trackTitle != nil && hud == nil && output == nil && batteryEvent == nil
     }
 
-    /// The bottom edge curves like a lower eyelid while the notch shows the track title.
+    /// The lower lid hangs from the bottom corners while the notch shows the track title.
     var lowerLidDepth: CGFloat {
-        isShowingTrackTitle ? Layout.lowerLidDepth : 0
+        isShowingTrackTitle ? Layout.trackTitleHeight : 0
+    }
+
+    /// Takes the title away once it has run past, unless another one took its place.
+    func finishTrackTitle(_ id: TrackTitle.ID) {
+        if trackTitle?.id == id {
+            trackTitle = nil
+        }
     }
 
     /// How far up from the bottom the lid fades out. Nothing fades otherwise.
     var lidFadeHeight: CGFloat {
         isShowingTrackTitle ? Layout.lidFadeHeight : 0
-    }
-
-    /// Room for the track title in one line. Longer titles scroll.
-    var trackTitleWidth: CGFloat {
-        geometry.notchSize.width + 2 * Layout.activitySideWidth - 2 * Layout.trackTitleInset
     }
 
     /// Size of the notch body, excluding the ears.

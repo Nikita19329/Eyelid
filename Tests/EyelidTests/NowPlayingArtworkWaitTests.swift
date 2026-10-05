@@ -11,7 +11,7 @@ import UniformTypeIdentifiers
 @Suite("Artwork on its way")
 struct NowPlayingArtworkWaitTests {
     private final class Starts {
-        var titles: [String] = []
+        var count = 0
     }
 
     private func png(red: CGFloat, green: CGFloat, blue: CGFloat) throws -> Data {
@@ -50,8 +50,8 @@ struct NowPlayingArtworkWaitTests {
 
     private func service(_ starts: Starts) -> NowPlayingService {
         let service = NowPlayingService(artworkGrace: 0.06, earlyTitleWait: 0.06)
-        service.onPlaybackStart = { track in
-            starts.titles.append(track.title)
+        service.onPlaybackStart = {
+            starts.count += 1
         }
         return service
     }
@@ -67,14 +67,14 @@ struct NowPlayingArtworkWaitTests {
 
         service.apply(try snapshot("Two", artist: "Би-2", album: "Иномарки", duration: 204, elapsed: 3))
         service.apply(try snapshot("Two", artist: "Би-2", album: "Иномарки", duration: 204, elapsed: 3, artwork: red))
-        // Still the previous track: the new title doesn't show with the old artist.
+        // Still the previous track: the new title doesn't show with the old artist. The lid opens already.
         #expect(service.track?.title == "One")
-        #expect(starts.titles == ["One"])
+        #expect(starts.count == 2)
 
         service.apply(try snapshot("Two", artist: "Любэ", album: "Том 2", duration: 110, elapsed: 0))
         #expect(service.track?.title == "Two")
         #expect(service.track?.artist == "Любэ")
-        #expect(starts.titles == ["One", "Two"])
+        #expect(starts.count == 2)
         // The previous colors stay until the new artwork comes.
         #expect((service.track?.artworkColor?.red ?? 0) > 0.8)
 
@@ -91,7 +91,7 @@ struct NowPlayingArtworkWaitTests {
         try await Task.sleep(for: .milliseconds(250))
 
         #expect(service.track?.title == "Two")
-        #expect(starts.titles == ["One", "Two"])
+        #expect(starts.count == 2)
     }
 
     @Test func tellsEarlyTitlesFromNewTracks() throws {
@@ -117,7 +117,7 @@ struct NowPlayingArtworkWaitTests {
 
         service.apply(try snapshot("Two"))
         // The notch reacts right away, and the title waits for the artwork.
-        #expect(starts.titles == ["One", "Two"])
+        #expect(starts.count == 2)
         #expect(service.isAwaitingArtwork)
         for update in [try snapshot("Two", artwork: red), try snapshot("Two")] {
             service.apply(update)
@@ -129,7 +129,7 @@ struct NowPlayingArtworkWaitTests {
 
         #expect(!service.isAwaitingArtwork)
         #expect((service.track?.artworkColor?.blue ?? 0) > 0.8)
-        #expect(starts.titles == ["One", "Two"])
+        #expect(starts.count == 2)
     }
 
     @Test func trackWithoutArtworkShowsOnceTheWaitIsOver() async throws {
@@ -170,7 +170,7 @@ struct NowPlayingArtworkWaitTests {
         service.apply(try snapshot("One", playing: false, artwork: cover))
         service.apply(try snapshot("One", artwork: cover))
 
-        #expect(starts.titles == ["One", "One"])
+        #expect(starts.count == 2)
         #expect(!service.isAwaitingArtwork)
     }
 

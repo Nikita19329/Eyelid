@@ -77,25 +77,36 @@ struct NotchViewModelTests {
     @Test func trackTitleDropsTheClosedNotchLikeALowerEyelid() {
         let model = makeModel()
 
-        model.trackTitle = TrackTitle(title: "Song", artist: "Artist")
+        model.trackTitle = TrackTitle()
 
         #expect(model.isShowingTrackTitle)
         #expect(model.bodySize == CGSize(
             width: 185 + 2 * NotchViewModel.Layout.activitySideWidth,
             height: 32 + NotchViewModel.Layout.trackTitleHeight
         ))
-        #expect(model.lowerLidDepth == NotchViewModel.Layout.lowerLidDepth)
+        #expect(model.lowerLidDepth == NotchViewModel.Layout.trackTitleHeight)
         #expect(model.lidFadeHeight == NotchViewModel.Layout.lidFadeHeight)
         #expect(model.bottomRadius == NotchViewModel.Layout.lidBottomRadius)
-        // The text sits above the fade.
-        #expect(NotchViewModel.Layout.trackTitleTextHeight + NotchViewModel.Layout.lidFadeHeight
-            <= NotchViewModel.Layout.trackTitleHeight)
-        #expect(model.trackTitleWidth == 185 + 2 * NotchViewModel.Layout.activitySideWidth - 2 * NotchViewModel.Layout.trackTitleInset)
+        // The text runs above the fade.
+        #expect(NotchViewModel.Layout.trackTitleInset >= NotchViewModel.Layout.lidFadeHeight)
+    }
+
+    @Test func titleThatRanPastGoesUnlessAnotherTookItsPlace() {
+        let model = makeModel()
+        let first = TrackTitle()
+        let second = TrackTitle()
+
+        model.trackTitle = second
+        model.finishTrackTitle(first.id)
+        #expect(model.trackTitle == second)
+
+        model.finishTrackTitle(second.id)
+        #expect(model.trackTitle == nil)
     }
 
     @Test func otherEventsAndTheOpenNotchHideTheTrackTitle() {
         let model = makeModel()
-        model.trackTitle = TrackTitle(title: "Song", artist: "Artist")
+        model.trackTitle = TrackTitle()
 
         model.hud = HUDEvent(kind: .volume, level: 0.5)
         #expect(!model.isShowingTrackTitle)
