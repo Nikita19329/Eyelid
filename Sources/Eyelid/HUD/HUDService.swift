@@ -15,11 +15,15 @@ struct HUDEvent: Equatable, Sendable {
     var isMuted = false
     /// The output device's icon, for volume. `.speaker` draws waves that follow the level.
     var deviceIcon: DeviceIcon = .speaker
+    /// For AirPods with one earbud in: that earbud, so the icon shows what's in use.
+    var earbud: HeadphonesBattery.Earbud?
 
     var symbolName: String {
         switch kind {
         case .volume:
-            if deviceIcon != .speaker { deviceIcon.availableSymbolName }
+            if deviceIcon != .speaker {
+                earbud.flatMap(deviceIcon.earbudSymbolName) ?? deviceIcon.availableSymbolName
+            }
             else if isMuted || level == 0 { "speaker.slash.fill" }
             else if level < 1 / 3 { "speaker.wave.1.fill" }
             else if level < 2 / 3 { "speaker.wave.2.fill" }
@@ -139,9 +143,11 @@ final class HUDService {
         let new = state.after(press.key, fine: press.isFineStep)
         guard SystemVolume.apply(new, from: state, on: device) else { return false }
 
-        let deviceIcon = OutputDevice(audioDevice: device).map(settings.icon(for:)) ?? .speaker
+        let output = OutputDevice(audioDevice: device)
+        let deviceIcon = output.map(settings.icon(for:)) ?? .speaker
+        let earbud = output.flatMap(HeadphonesBattery.current(for:))?.singleEarbud
         logger.debug("Volume \(new.level, privacy: .public), muted: \(new.isMuted, privacy: .public), icon: \(deviceIcon.rawValue, privacy: .public)")
-        onEvent?(HUDEvent(kind: .volume, level: new.level, isMuted: new.isMuted, deviceIcon: deviceIcon))
+        onEvent?(HUDEvent(kind: .volume, level: new.level, isMuted: new.isMuted, deviceIcon: deviceIcon, earbud: earbud))
         return true
     }
 

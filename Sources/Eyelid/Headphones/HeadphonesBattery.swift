@@ -32,6 +32,14 @@ struct HeadphonesBattery: Equatable, Sendable {
         main != nil || (left != nil && !leftIsInCase) || (right != nil && !rightIsInCase)
     }
 
+    /// The earbuds out of the case. Empty for over-ear headphones, which have none.
+    var earbudsInUse: Set<Earbud> {
+        var earbuds: Set<Earbud> = []
+        if left != nil, !leftIsInCase { earbuds.insert(.left) }
+        if right != nil, !rightIsInCase { earbuds.insert(.right) }
+        return earbuds
+    }
+
     /// The earbud in use when the other one stays in the case.
     var singleEarbud: Earbud? {
         let leftInUse = left != nil && !leftIsInCase
@@ -46,7 +54,8 @@ struct HeadphonesBattery: Equatable, Sendable {
 
 extension HeadphonesBattery {
     /// Reads the charge of a device from accessory power sources, as `AccessoryPowerSources.descriptions()` returns
-    /// them: one per earbud and one for the case, all named after the device. Returns nil when there's none.
+    /// them: one per earbud and one for the case, all named after the device. With both earbuds in, macOS lists a
+    /// single combined one instead. Returns nil when there's none.
     init?(powerSources: [[String: Any]], deviceName: String, productID: Int?) {
         let parts = powerSources.filter { source in
             guard (source[kIOPSNameKey] as? String)?.hasPrefix(deviceName) == true else { return false }
@@ -71,6 +80,11 @@ extension HeadphonesBattery {
             case "Right":
                 right = charge(of: part)
                 rightIsInCase = isOnCasePower(part)
+            case "Combined":
+                left = charge(of: part)
+                right = left
+                leftIsInCase = isOnCasePower(part)
+                rightIsInCase = leftIsInCase
             case "Case":
                 self.case = charge(of: part)
             default:
@@ -78,6 +92,18 @@ extension HeadphonesBattery {
             }
         }
         guard level != nil || self.case != nil else { return nil }
+    }
+}
+
+extension HeadphonesBattery {
+    /// The charge of a connected output, if it's Apple or Beats headphones, which report it.
+    static func current(for device: OutputDevice) -> HeadphonesBattery? {
+        guard device.transport == .bluetooth, let productID = device.appleProductID else { return nil }
+        return HeadphonesBattery(
+            powerSources: AccessoryPowerSources.descriptions(),
+            deviceName: device.name,
+            productID: productID
+        )
     }
 }
 

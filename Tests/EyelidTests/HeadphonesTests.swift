@@ -93,4 +93,55 @@ struct HeadphonesTests {
         // The list itself depends on what's connected, so only the private call is checked.
         #expect(AccessoryPowerSources.isAvailable)
     }
+
+    @Test func earbudsOutOfTheCase() throws {
+        #expect(try #require(battery(airpods())).earbudsInUse == [.left])
+        #expect(try #require(battery(airpods(right: kIOPSBatteryPowerValue))).earbudsInUse == [.left, .right])
+        #expect(try #require(battery(airpods(left: kIOPSACPowerValue))).earbudsInUse.isEmpty)
+    }
+
+    @Test func earbudsGoingInOrOutShowAgain() {
+        // The second earbud joins, or one of two leaves.
+        #expect(HeadphonesService.isWorthShowing(from: [.left], to: [.left, .right]))
+        #expect(HeadphonesService.isWorthShowing(from: [.left, .right], to: [.right]))
+        #expect(HeadphonesService.isWorthShowing(from: [], to: [.left]))
+        // Nothing changed, or both went back in the case, which disconnects them anyway.
+        #expect(!HeadphonesService.isWorthShowing(from: [.left], to: [.left]))
+        #expect(!HeadphonesService.isWorthShowing(from: [.left, .right], to: []))
+    }
+
+    @Test func volumeShowsTheEarbudInUse() {
+        let left = HUDEvent(kind: .volume, level: 0.5, deviceIcon: .airpodsPro, earbud: .left)
+        let both = HUDEvent(kind: .volume, level: 0.5, deviceIcon: .airpodsPro)
+        let headset = HUDEvent(kind: .volume, level: 0.5, deviceIcon: .headset, earbud: .right)
+
+        #expect(left.symbolName == "airpodpro.left")
+        #expect(both.symbolName == DeviceIcon.airpodsPro.availableSymbolName)
+        // An icon picked for the device that has no earbuds of its own stays as it is.
+        #expect(headset.symbolName == DeviceIcon.headset.availableSymbolName)
+    }
+
+    @Test func onlyAppleBluetoothHeadphonesReportACharge() {
+        let speakers = OutputDevice(id: "BuiltInSpeakerDevice", name: "MacBook Pro Speakers", transport: .builtIn, isHeadphoneJack: false, modelUID: nil)
+        let jabra = OutputDevice(id: "jabra", name: "Jabra", transport: .bluetooth, isHeadphoneJack: false, modelUID: "1234 b0e")
+
+        #expect(HeadphonesBattery.current(for: speakers) == nil)
+        #expect(HeadphonesBattery.current(for: jabra) == nil)
+    }
+
+    @Test func bothEarbudsInComeAsOneCombinedPart() throws {
+        // What macOS lists with both AirPods in: the case and one part for the pair.
+        let sources: [[String: Any]] = [
+            ["Name": "AirPods Pro Case", "Part Identifier": "Case", "Current Capacity": 48, "Product ID": 0x2024],
+            ["Name": "AirPods Pro", "Part Identifier": "Combined", "Current Capacity": 98, "Product ID": 0x2024,
+             "Power Source State": kIOPSBatteryPowerValue],
+        ]
+
+        let both = try #require(battery(sources))
+
+        #expect(both.earbudsInUse == [.left, .right])
+        #expect(both.singleEarbud == nil)
+        #expect(both.level == 98)
+        #expect(both.case == 48)
+    }
 }
