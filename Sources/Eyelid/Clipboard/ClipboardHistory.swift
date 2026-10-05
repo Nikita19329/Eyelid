@@ -2,7 +2,7 @@ import AppKit
 import Observation
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Clipboard")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "Clipboard")
 
 /// The last things copied, newest first, after the pinned ones. Kept in memory only, so the history is gone when
 /// Eyelid quits, except for pinned copies, which are saved.
@@ -53,7 +53,7 @@ final class ClipboardHistory {
     }
 
     static var defaultPinnedFile: URL {
-        URL.applicationSupportDirectory.appending(path: "io.github.nikita19329.eyelid/Clipboard/Pinned.plist")
+        URL.applicationSupportDirectory.appending(path: "io.github.satis-ku.eyelid/Clipboard/Pinned.plist")
     }
 
     var pinnedCount: Int {

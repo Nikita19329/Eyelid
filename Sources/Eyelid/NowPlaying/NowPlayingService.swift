@@ -2,7 +2,7 @@ import AppKit
 import Observation
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "NowPlaying")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "NowPlaying")
 
 /// Keeps `track` in sync with whatever macOS reports as now playing, from any app.
 @MainActor
