@@ -6,6 +6,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let nowPlaying = NowPlayingService()
     private let battery = BatteryService()
     let shelf = Shelf()
+    let clipboard = ClipboardHistory()
+    private let hotKeys = HotKeyCenter()
+    private(set) lazy var clipboardShortcut = ClipboardShortcut(center: hotKeys, settings: settings)
     private lazy var hud = HUDService(settings: settings)
     private var notchController: NotchWindowController?
     private var signalSources: [DispatchSourceSignal] = []
@@ -22,10 +25,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             nowPlaying: nowPlaying,
             battery: battery,
             shelf: shelf,
+            clipboard: clipboard,
+            clipboardShortcut: clipboardShortcut,
             hud: hud,
             settings: settings
         )
         followHUDSetting()
+        followClipboardSetting()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -40,6 +46,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // `onChange` runs before the new value is stored, so apply it on the next turn of the main actor.
             Task { @MainActor in
                 self?.followHUDSetting()
+            }
+        }
+    }
+
+    /// Watches the pasteboard while the clipboard history is on.
+    private func followClipboardSetting() {
+        withObservationTracking {
+            let isOn = settings.clipboardEnabled
+            clipboard.setMonitoring(isOn)
+            // macOS lists an app under Paste from Other Apps only once it has asked to read the pasteboard.
+            // Reading it once does that, and its prompt tells the user what turning the history on means.
+            if isOn, clipboard.access == .notAskedYet {
+                clipboard.captureCurrentContents()
+            }
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.followClipboardSetting()
             }
         }
     }

@@ -56,7 +56,7 @@ private struct OpenNotchView: View {
                         .transition(.opacity)
                 } else {
                     HStack {
-                        if model.settings.shelfEnabled {
+                        if model.settings.shelfEnabled || model.settings.clipboardEnabled {
                             NotchTabs(model: model)
                         }
                         Spacer()
@@ -73,6 +73,8 @@ private struct OpenNotchView: View {
             Group {
                 if model.showsShelf {
                     ShelfView(model: model)
+                } else if model.showsClipboard {
+                    ClipboardView(model: model)
                 } else if let track = model.nowPlaying.track {
                     NowPlayingCard(track: track, nowPlaying: model.nowPlaying)
                 } else {
@@ -88,7 +90,7 @@ private struct OpenNotchView: View {
     }
 }
 
-/// Switches the open notch between now playing and the shelf.
+/// Switches the open notch between now playing, the shelf and the clipboard history.
 private struct NotchTabs: View {
     let model: NotchViewModel
 
@@ -97,12 +99,20 @@ private struct NotchTabs: View {
             TabButton(title: "Now Playing", systemImage: "music.note", isSelected: model.tab == .nowPlaying) {
                 model.tab = .nowPlaying
             }
-            TabButton(
-                title: "Shelf",
-                systemImage: model.shelf.items.isEmpty ? "tray" : "tray.full",
-                isSelected: model.tab == .shelf
-            ) {
-                model.tab = .shelf
+            if model.settings.shelfEnabled {
+                TabButton(
+                    title: "Shelf",
+                    systemImage: model.shelf.items.isEmpty ? "tray" : "tray.full",
+                    isSelected: model.tab == .shelf
+                ) {
+                    model.tab = .shelf
+                }
+            }
+            if model.settings.clipboardEnabled {
+                TabButton(title: "Clipboard", systemImage: "doc.on.clipboard", isSelected: model.tab == .clipboard) {
+                    model.clipboardSelection = 0
+                    model.tab = .clipboard
+                }
             }
         }
     }

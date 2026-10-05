@@ -13,12 +13,15 @@ final class NotchViewModel {
     enum Tab {
         case nowPlaying
         case shelf
+        case clipboard
     }
 
     enum Layout {
         static let openWidth: CGFloat = 440
         /// Height of the open notch below the hardware notch strip.
         static let openContentHeight: CGFloat = 108
+        /// The clipboard history needs room for a list, so the notch grows taller for it.
+        static let clipboardContentHeight: CGFloat = 236
         /// Extra room on each side of the closed notch for the live activity.
         static let activitySideWidth: CGFloat = 42
         /// Room on each side of the closed notch for the volume and brightness HUD.
@@ -49,23 +52,33 @@ final class NotchViewModel {
     var isDraggingFiles = false
     /// Whether files are being dragged over the open notch, which would add them to the shelf.
     var isDropTargeted = false
+    /// Whether the notch stays open wherever the pointer goes: after the clipboard shortcut, until an entry is
+    /// picked, Escape is pressed or the user clicks elsewhere.
+    var isPinned = false
+    /// The clipboard entry that Return copies, by its place in the list.
+    var clipboardSelection = 0
     let nowPlaying: NowPlayingService
     let battery: BatteryService
     let shelf: Shelf
+    let clipboard: ClipboardHistory
     let settings: AppSettings
     @ObservationIgnored let shelfDragSource = ShelfDragSource()
+    /// Set by the window controller, which owns opening and closing.
+    @ObservationIgnored var close: @MainActor () -> Void = {}
 
     init(
         geometry: NotchGeometry,
         nowPlaying: NowPlayingService,
         battery: BatteryService,
         shelf: Shelf,
+        clipboard: ClipboardHistory,
         settings: AppSettings
     ) {
         self.geometry = geometry
         self.nowPlaying = nowPlaying
         self.battery = battery
         self.shelf = shelf
+        self.clipboard = clipboard
         self.settings = settings
         shelfDragSource.onDrop = { [weak self] items in
             self?.didDragOut(items)
@@ -75,6 +88,37 @@ final class NotchViewModel {
     /// Whether the open notch shows the shelf rather than now playing.
     var showsShelf: Bool {
         settings.shelfEnabled && tab == .shelf
+    }
+
+    var showsClipboard: Bool {
+        settings.clipboardEnabled && tab == .clipboard
+    }
+
+    /// Puts a clipboard entry back on the pasteboard, ready to paste, and closes the notch.
+    func choose(_ entry: ClipboardEntry) {
+        clipboard.copy(entry)
+        close()
+    }
+
+    /// Moves the clipboard selection up or down the list, staying within it.
+    func moveClipboardSelection(by offset: Int) {
+        let last = clipboard.entries.count - 1
+        clipboardSelection = max(0, min(last, clipboardSelection + offset))
+    }
+
+    /// With nothing to choose, Return just closes the history, so the keys typed next reach the app in front.
+    func chooseSelectedClipboardEntry() {
+        guard clipboard.entries.indices.contains(clipboardSelection) else {
+            close()
+            return
+        }
+        choose(clipboard.entries[clipboardSelection])
+    }
+
+    func removeSelectedClipboardEntry() {
+        guard clipboard.entries.indices.contains(clipboardSelection) else { return }
+        clipboard.remove(clipboard.entries[clipboardSelection].id)
+        moveClipboardSelection(by: 0)
     }
 
     private func didDragOut(_ items: [ShelfItem.ID]) {
@@ -98,7 +142,8 @@ final class NotchViewModel {
         let notch = geometry.notchSize
         switch state {
         case .open:
-            return CGSize(width: Layout.openWidth, height: notch.height + Layout.openContentHeight)
+            let contentHeight = showsClipboard ? Layout.clipboardContentHeight : Layout.openContentHeight
+            return CGSize(width: Layout.openWidth, height: notch.height + contentHeight)
         case .closed:
             let sideWidth = hud != nil ? Layout.hudSideWidth : (showsActivity ? Layout.activitySideWidth : 0)
             let extra = 2 * sideWidth
@@ -114,11 +159,13 @@ final class NotchViewModel {
         state == .open ? Layout.openBottomRadius : Layout.closedBottomRadius
     }
 
-    /// The panel is sized once for the open state and never resized, which keeps animations smooth.
+    /// The panel is sized once for the tallest open state and never resized, which keeps animations smooth.
     var windowSize: CGSize {
         CGSize(
             width: Layout.openWidth + 2 * Layout.openTopRadius + 2 * Layout.shadowPadding,
-            height: geometry.notchSize.height + Layout.openContentHeight + Layout.shadowPadding
+            height: geometry.notchSize.height
+                + max(Layout.openContentHeight, Layout.clipboardContentHeight)
+                + Layout.shadowPadding
         )
     }
 

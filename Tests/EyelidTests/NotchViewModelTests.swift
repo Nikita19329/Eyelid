@@ -18,6 +18,7 @@ struct NotchViewModelTests {
             nowPlaying: NowPlayingService(),
             battery: BatteryService(),
             shelf: Shelf(store: InMemorySettingsStore(), promisedFilesDirectory: FileManager.default.temporaryDirectory),
+            clipboard: ClipboardHistory(pasteboard: .withUniqueName()),
             settings: AppSettings(defaults: InMemorySettingsStore())
         )
     }
@@ -138,5 +139,56 @@ struct NotchViewModelTests {
         model.settings.shelfRemovesDraggedFiles = true
         model.shelfDragSource.onDrop?([item.id])
         #expect(model.shelf.items.isEmpty)
+    }
+
+    @Test func clipboardHistoryGetsATallerNotch() {
+        let model = makeModel()
+        model.state = .open
+        model.tab = .clipboard
+        #expect(model.bodySize.height == 32 + NotchViewModel.Layout.openContentHeight)
+
+        model.settings.clipboardEnabled = true
+
+        #expect(model.showsClipboard)
+        #expect(model.bodySize.height == 32 + NotchViewModel.Layout.clipboardContentHeight)
+        #expect(model.windowSize.height > model.bodySize.height)
+    }
+
+    @Test func clipboardSelectionStaysInTheList() {
+        let model = makeModel()
+        for text in ["one", "two", "three"] {
+            model.clipboard.add(try! #require(ClipboardEntry(items: [[.string: Data(text.utf8)]])))
+        }
+
+        model.moveClipboardSelection(by: -1)
+        #expect(model.clipboardSelection == 0)
+        model.moveClipboardSelection(by: 5)
+        #expect(model.clipboardSelection == 2)
+
+        model.removeSelectedClipboardEntry()
+        #expect(model.clipboard.entries.count == 2)
+        #expect(model.clipboardSelection == 1)
+    }
+
+    @Test func choosingAnEntryClosesTheNotch() throws {
+        let model = makeModel()
+        var closed = false
+        model.close = { closed = true }
+        model.clipboard.add(try #require(ClipboardEntry(items: [[.string: Data("hello".utf8)]])))
+
+        model.chooseSelectedClipboardEntry()
+
+        #expect(closed)
+        #expect(model.clipboard.entries.count == 1)
+    }
+
+    @Test func returnClosesAnEmptyHistory() {
+        let model = makeModel()
+        var closed = false
+        model.close = { closed = true }
+
+        model.chooseSelectedClipboardEntry()
+
+        #expect(closed)
     }
 }

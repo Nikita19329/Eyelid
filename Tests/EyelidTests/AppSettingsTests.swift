@@ -18,6 +18,8 @@ struct AppSettingsTests {
         #expect(settings.displayID == nil)
         #expect(settings.shelfEnabled)
         #expect(settings.shelfRemovesDraggedFiles)
+        #expect(!settings.clipboardEnabled)
+        #expect(settings.clipboardHotKey == .clipboardDefault)
     }
 
     @Test func changesSurviveARelaunch() {
@@ -33,6 +35,8 @@ struct AppSettingsTests {
         settings.displayID = 42
         settings.shelfEnabled = false
         settings.shelfRemovesDraggedFiles = false
+        settings.clipboardEnabled = true
+        settings.clipboardHotKey = HotKey(keyCode: 9, modifiers: 2048 | 256)
 
         let relaunched = AppSettings(defaults: store)
 
@@ -46,6 +50,8 @@ struct AppSettingsTests {
         #expect(relaunched.displayID == 42)
         #expect(!relaunched.shelfEnabled)
         #expect(!relaunched.shelfRemovesDraggedFiles)
+        #expect(relaunched.clipboardEnabled)
+        #expect(relaunched.clipboardHotKey == HotKey(keyCode: 9, modifiers: 2048 | 256))
     }
 
     @Test func automaticDisplayRemovesTheStoredOne() {

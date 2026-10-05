@@ -17,6 +17,8 @@ final class AppSettings {
         static let displayID = "displayID"
         static let shelfEnabled = "shelfEnabled"
         static let shelfRemovesDraggedFiles = "shelfRemovesDraggedFiles"
+        static let clipboardEnabled = "clipboardEnabled"
+        static let clipboardHotKey = "clipboardHotKey"
     }
 
     /// Delays offered in Settings, in seconds.
@@ -77,6 +79,22 @@ final class AppSettings {
         didSet { defaults.set(shelfRemovesDraggedFiles, forKey: Key.shelfRemovesDraggedFiles) }
     }
 
+    /// Whether Eyelid keeps a history of what's copied. Off by default: it sees everything you copy, and
+    /// macOS asks before letting it.
+    var clipboardEnabled: Bool {
+        didSet { defaults.set(clipboardEnabled, forKey: Key.clipboardEnabled) }
+    }
+
+    /// The shortcut that opens the clipboard history.
+    var clipboardHotKey: HotKey {
+        didSet {
+            defaults.set(
+                ["keyCode": Int(clipboardHotKey.keyCode), "modifiers": Int(clipboardHotKey.modifiers)],
+                forKey: Key.clipboardHotKey
+            )
+        }
+    }
+
     private let defaults: any SettingsStore
 
     init(defaults: any SettingsStore = UserDefaults.standard) {
@@ -92,6 +110,13 @@ final class AppSettings {
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
         shelfEnabled = defaults.object(forKey: Key.shelfEnabled) as? Bool ?? true
         shelfRemovesDraggedFiles = defaults.object(forKey: Key.shelfRemovesDraggedFiles) as? Bool ?? true
+        clipboardEnabled = defaults.object(forKey: Key.clipboardEnabled) as? Bool ?? false
+        if let stored = defaults.object(forKey: Key.clipboardHotKey) as? [String: Int],
+           let keyCode = stored["keyCode"], let modifiers = stored["modifiers"] {
+            clipboardHotKey = HotKey(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers))
+        } else {
+            clipboardHotKey = .clipboardDefault
+        }
     }
 }
 
