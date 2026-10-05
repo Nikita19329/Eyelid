@@ -18,12 +18,12 @@ struct HeadphonesTests {
         ]
     }
 
-    private func battery(_ sources: [[String: Any]], name: String = "AirPods Pro", productID: Int? = 0x2024) -> HeadphonesBattery? {
+    private func parse(_ sources: [[String: Any]], name: String = "AirPods Pro", productID: Int? = 0x2024) -> HeadphonesBattery? {
         HeadphonesBattery(powerSources: sources, deviceName: name, productID: productID)
     }
 
     @Test func readsEachEarbudAndTheCase() throws {
-        let battery = try #require(battery(airpods()))
+        let battery = try #require(parse(airpods()))
 
         #expect(battery.left == 100)
         #expect(battery.right == 81)
@@ -33,17 +33,17 @@ struct HeadphonesTests {
     }
 
     @Test func theEarbudInUseIsTheOneOutOfTheCase() throws {
-        let leftOnly = try #require(battery(airpods()))
+        let leftOnly = try #require(parse(airpods()))
         #expect(leftOnly.singleEarbud == .left)
         #expect(leftOnly.level == 100)
 
-        let rightOnly = try #require(battery(airpods(left: kIOPSACPowerValue, right: kIOPSBatteryPowerValue)))
+        let rightOnly = try #require(parse(airpods(left: kIOPSACPowerValue, right: kIOPSBatteryPowerValue)))
         #expect(rightOnly.singleEarbud == .right)
         #expect(rightOnly.level == 81)
     }
 
     @Test func bothEarbudsShowTheEmptierOne() throws {
-        let both = try #require(battery(airpods(left: kIOPSBatteryPowerValue, right: kIOPSBatteryPowerValue)))
+        let both = try #require(parse(airpods(left: kIOPSBatteryPowerValue, right: kIOPSBatteryPowerValue)))
 
         #expect(both.singleEarbud == nil)
         #expect(both.level == 81)
@@ -51,14 +51,14 @@ struct HeadphonesTests {
     }
 
     @Test func bothInTheCaseIsNotInUseYet() throws {
-        let stale = try #require(battery(airpods(left: kIOPSACPowerValue, right: kIOPSACPowerValue)))
+        let stale = try #require(parse(airpods(left: kIOPSACPowerValue, right: kIOPSACPowerValue)))
 
         #expect(!stale.isInUse)
         #expect(stale.singleEarbud == nil)
     }
 
     @Test func overEarHeadphonesHaveOneLevel() throws {
-        let max = try #require(battery([["Name": "AirPods Max", "Current Capacity": 64, "Product ID": 0x200A]],
+        let max = try #require(parse([["Name": "AirPods Max", "Current Capacity": 64, "Product ID": 0x200A]],
                                        name: "AirPods Max", productID: 0x200A))
 
         #expect(max.level == 64)
@@ -66,9 +66,9 @@ struct HeadphonesTests {
     }
 
     @Test func otherDevicesDontCount() {
-        #expect(battery(airpods(), name: "Beats Studio") == nil)
-        #expect(battery(airpods(), productID: 0x200E) == nil)
-        #expect(battery([]) == nil)
+        #expect(parse(airpods(), name: "Beats Studio") == nil)
+        #expect(parse(airpods(), productID: 0x200E) == nil)
+        #expect(parse([]) == nil)
     }
 
     @Test func earbudsHaveSymbolsForEachSide() {
@@ -84,9 +84,9 @@ struct HeadphonesTests {
     }
 
     @Test func earbudsOutOfTheCase() throws {
-        #expect(try #require(battery(airpods())).earbudsInUse == [.left])
-        #expect(try #require(battery(airpods(right: kIOPSBatteryPowerValue))).earbudsInUse == [.left, .right])
-        #expect(try #require(battery(airpods(left: kIOPSACPowerValue))).earbudsInUse.isEmpty)
+        #expect(try #require(parse(airpods())).earbudsInUse == [.left])
+        #expect(try #require(parse(airpods(right: kIOPSBatteryPowerValue))).earbudsInUse == [.left, .right])
+        #expect(try #require(parse(airpods(left: kIOPSACPowerValue))).earbudsInUse.isEmpty)
     }
 
     @Test func earbudsGoingInOrOutShowAgain() {
@@ -126,7 +126,7 @@ struct HeadphonesTests {
              "Power Source State": kIOPSBatteryPowerValue],
         ]
 
-        let both = try #require(battery(sources))
+        let both = try #require(parse(sources))
 
         #expect(both.earbudsInUse == [.left, .right])
         #expect(both.singleEarbud == nil)
