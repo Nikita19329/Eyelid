@@ -11,11 +11,11 @@
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)](#install)
 [![License: GPL v3](https://img.shields.io/github/license/Nikita19329/Eyelid)](LICENSE)
 
-<img src="docs/images/notch-open.png" alt="The open notch with a playing track: artwork, title, progress, playback controls, and the battery level beside the notch" width="720">
+<img src="docs/images/notch-open.png" alt="The open notch with a playing track: artwork, title, progress and playback controls, with tabs and the battery level beside the notch" width="720">
 
 </div>
 
-Eyelid lives in the notch and blends in with it. Hover over the notch and it opens to show what's playing. Press a volume or brightness key and the level appears beside the notch instead of the system HUD. Plug in the charger and the battery shows up for a moment.
+Eyelid lives in the notch and blends in with it. Hover over the notch and it opens to show what's playing. Drop files on it to keep them at hand. Press a volume or brightness key and the level appears beside the notch instead of the system HUD. Plug in the charger and the battery shows up for a moment.
 
 > **Status:** early, but usable day to day. Expect rough edges.
 
@@ -27,6 +27,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 
 - **Blends in.** The closed notch matches the hardware cutout, so you don't notice Eyelid until you need it.
 - **Hover to open.** The notch opens when the pointer reaches it and closes when the pointer leaves. You can add a delay, and Force Touch trackpads give a haptic tick.
+- **Two tabs** in the open notch: Now Playing and the file shelf.
 - **Stays out of the way.** No Dock icon, on every Space and over full-screen apps. Clicks pass through to the menu bar while the notch is closed.
 - **Macs without a notch** get a virtual one at the top of the main display.
 
@@ -54,6 +55,16 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Low battery warnings** at 20% and 10%.
 - **Battery level** in the open notch.
 
+### File shelf
+
+- **Drop files on the notch.** Drag files toward the notch and it opens to the shelf. Drop them anywhere on it.
+- **Drag them out** to Finder, Mail, a chat or any other app. A file then leaves the shelf, unless you turn that off.
+- **Files stay where they are.** The shelf only keeps a reference. It follows a file you rename or move, and survives a relaunch.
+- **Works with Photos, Mail and Safari,** whose photos, attachments and images only become files once they're dropped. Eyelid saves them in its Application Support folder until they leave the shelf.
+- **Double-click** opens a file. **Right-click** to show it in Finder or remove it.
+
+<img src="docs/images/shelf.png" alt="The shelf in the open notch with a photo, a PDF, a text file, a folder and a zip archive" width="720">
+
 ### Settings
 
 The eye icon in the menu bar opens Settings and quits Eyelid.
@@ -64,6 +75,7 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 | Notch | Hover delay, haptic feedback, live activity |
 | Volume & Brightness | The HUD, its level style, and an icon for each output device |
 | Battery | Battery activity |
+| Shelf | The file shelf, whether dragged-out files leave it, and a button to clear it |
 
 <img src="docs/images/settings.png" alt="The Volume & Brightness tab of Eyelid's settings" width="420">
 
@@ -115,6 +127,7 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 - **Nothing leaves your Mac.** Eyelid never connects to the internet and has no analytics or telemetry.
 - **What it reads stays local.** What's playing, the battery and the audio devices are read on your Mac and never logged.
 - **Accessibility only if you ask for it.** Eyelid requests it only when you turn on the volume and brightness HUD, and then handles only the volume, mute and brightness keys. Other keys aren't touched.
+- **The shelf doesn't read your files.** It keeps bookmarks to them in user defaults. Previews come from Quick Look, which runs in its own sandboxed process.
 - **Settings** are stored in macOS user defaults.
 
 ## Build from source
@@ -152,6 +165,8 @@ make run
 **Device icons.** The volume HUD picks the icon from what CoreAudio reports about the output: the connection type, whether wired headphones are plugged in, and for Bluetooth the model UID, which holds the vendor and product ID. That's enough for AirPods and Beats, even after renaming them. Other Bluetooth devices all look like headphones to macOS, hence the per-device icon setting.
 
 **Battery.** IOKit's power source notifications report every change, and Eyelid turns them into plug, unplug and low battery events.
+
+**File shelf.** A drag starts by filling the system's drag pasteboard, so the mouse monitor tells a file drag from other mouse moves by its change count and types, and opens the notch to the shelf. The panel's content view is registered for file URLs and file promises. Files are kept as bookmarks, which find them again after a rename, a move or a relaunch. Promised files are received into a folder of their own per drop, and folders no longer on the shelf are deleted at the next launch: the app a file was just dragged to may still be reading it. Dragging out offers the same operations as Finder, so Finder moves a file within a disk and copies it to another disk or with Option.
 
 ## Security
 
@@ -225,7 +240,6 @@ docs/images/    Images for this README, rendered from Eyelid's own views
 ## Roadmap
 
 - [ ] Calendar: upcoming events
-- [ ] File shelf: drop files onto the notch
 - [ ] Notches on several displays at once
 - [ ] Automatic updates (Sparkle) and notarization
 
