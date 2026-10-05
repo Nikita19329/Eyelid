@@ -124,6 +124,21 @@ struct NotchViewModelTests {
         #expect(!model.showsShelf)
     }
 
+    @Test func filesDraggedOutTogetherAllLeaveTheShelf() throws {
+        let files = try (1...3).map { index in
+            let file = FileManager.default.temporaryDirectory.appending(path: "EyelidDragAll-\(index)-\(UUID().uuidString).txt")
+            try Data("file \(index)".utf8).write(to: file)
+            return file
+        }
+        defer { files.forEach { try? FileManager.default.removeItem(at: $0) } }
+        let model = makeModel()
+        model.shelf.add(files)
+
+        model.shelfDragSource.onDrop?(model.shelf.items.map(\.id))
+
+        #expect(model.shelf.items.isEmpty)
+    }
+
     @Test func filesDraggedOutLeaveTheShelf() throws {
         let file = FileManager.default.temporaryDirectory.appending(path: "EyelidDragOut-\(UUID().uuidString).txt")
         try Data("taken".utf8).write(to: file)
