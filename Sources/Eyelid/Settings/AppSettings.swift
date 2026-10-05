@@ -11,6 +11,7 @@ final class AppSettings {
         static let hapticsEnabled = "hapticsEnabled"
         static let showsLiveActivity = "showsLiveActivity"
         static let showsTrackTitle = "showsTrackTitle"
+        static let equalizerFollowsAudio = "equalizerFollowsAudio"
         static let batteryActivityEnabled = "batteryActivityEnabled"
         static let outputActivityEnabled = "outputActivityEnabled"
         static let replacesSystemHUD = "replacesSystemHUD"
@@ -40,6 +41,12 @@ final class AppSettings {
     /// Whether artwork and an equalizer appear next to the closed notch while something plays.
     var showsLiveActivity: Bool {
         didSet { defaults.set(showsLiveActivity, forKey: Key.showsLiveActivity) }
+    }
+
+    /// Whether the equalizer next to the notch moves with the sound that's playing, rather than on its own. Off by
+    /// default, since macOS asks to allow Eyelid to record system audio for it.
+    var equalizerFollowsAudio: Bool {
+        didSet { defaults.set(equalizerFollowsAudio, forKey: Key.equalizerFollowsAudio) }
     }
 
     /// Whether the title of what starts playing shows for a moment under the closed notch, in the colors of its
@@ -129,6 +136,7 @@ final class AppSettings {
         hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
         showsLiveActivity = defaults.object(forKey: Key.showsLiveActivity) as? Bool ?? true
         showsTrackTitle = defaults.object(forKey: Key.showsTrackTitle) as? Bool ?? true
+        equalizerFollowsAudio = defaults.object(forKey: Key.equalizerFollowsAudio) as? Bool ?? false
         batteryActivityEnabled = defaults.object(forKey: Key.batteryActivityEnabled) as? Bool ?? true
         outputActivityEnabled = defaults.object(forKey: Key.outputActivityEnabled) as? Bool ?? true
         replacesSystemHUD = defaults.object(forKey: Key.replacesSystemHUD) as? Bool ?? false

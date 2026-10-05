@@ -26,6 +26,7 @@ final class NotchWindowController {
     init(
         screen: NSScreen,
         nowPlaying: NowPlayingService,
+        audioLevels: AudioLevels,
         battery: BatteryService,
         shelf: Shelf,
         clipboard: ClipboardHistory,
@@ -35,6 +36,7 @@ final class NotchWindowController {
         model = NotchViewModel(
             geometry: NotchGeometry(screen: screen),
             nowPlaying: nowPlaying,
+            audioLevels: audioLevels,
             battery: battery,
             shelf: shelf,
             clipboard: clipboard,

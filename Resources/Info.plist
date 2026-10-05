@@ -31,6 +31,8 @@
 	<true/>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSAudioCaptureUsageDescription</key>
+	<string>Eyelid measures the sound that's playing to move the equalizer next to the notch. Nothing is recorded or kept.</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>Licensed under the GNU GPL v3.</string>
 </dict>
