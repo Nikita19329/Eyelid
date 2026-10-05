@@ -54,7 +54,7 @@ final class NotchViewModel {
     var isDropTargeted = false
     /// Whether the notch stays open wherever the pointer goes: after the clipboard shortcut, until an entry is
     /// picked, Escape is pressed or the user clicks elsewhere.
-    var isPinned = false
+    var isHeldOpen = false
     /// The clipboard entry that Return copies, by its place in the list.
     var clipboardSelection = 0
     let nowPlaying: NowPlayingService

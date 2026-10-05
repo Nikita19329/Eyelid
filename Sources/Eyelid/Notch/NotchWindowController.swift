@@ -67,7 +67,7 @@ final class NotchWindowController {
         NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) {
             [weak self] _ in
             MainActor.assumeIsolated {
-                if self?.model.isPinned == true {
+                if self?.model.isHeldOpen == true {
                     self?.close()
                 }
             }
@@ -174,7 +174,7 @@ final class NotchWindowController {
         case .leftMouseDown:
             dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
             // A click anywhere else puts away the clipboard history, as with a menu.
-            if model.isPinned, !model.bodyRect.contains(NSEvent.mouseLocation) {
+            if model.isHeldOpen, !model.bodyRect.contains(NSEvent.mouseLocation) {
                 close()
             }
         case .leftMouseDragged:
@@ -210,7 +210,7 @@ final class NotchWindowController {
             openTask?.cancel()
             openTask = nil
         case (.open, false):
-            if !model.isPinned {
+            if !model.isHeldOpen {
                 close()
             }
         case (.open, true):
@@ -262,10 +262,10 @@ final class NotchWindowController {
 
     private func close() {
         logger.debug("Closed")
-        let wasPinned = model.isPinned
+        let wasPinned = model.isHeldOpen
         model.state = .closed
         model.isDropTargeted = false
-        model.isPinned = false
+        model.isHeldOpen = false
         if wasPinned {
             giveUpKeyboard()
         }
@@ -280,7 +280,7 @@ final class NotchWindowController {
 extension NotchWindowController {
     /// The clipboard shortcut opens the history, wherever the pointer is, and closes it again.
     private func toggleClipboard() {
-        if model.isPinned {
+        if model.isHeldOpen {
             close()
             return
         }
@@ -289,7 +289,7 @@ extension NotchWindowController {
         logger.debug("Opened the clipboard history")
         model.tab = .clipboard
         model.clipboardSelection = 0
-        model.isPinned = true
+        model.isHeldOpen = true
         open()
         takeKeyboard()
     }

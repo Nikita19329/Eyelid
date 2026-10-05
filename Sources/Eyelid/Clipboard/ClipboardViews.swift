@@ -35,7 +35,7 @@ struct ClipboardView: View {
                 }
             }
 
-            if model.isPinned {
+            if model.isHeldOpen {
                 Text("↑↓ to choose  ·  ↩ to copy  ·  ⌫ to remove  ·  ⎋ to close")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.35))
