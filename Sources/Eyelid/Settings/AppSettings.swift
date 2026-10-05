@@ -20,6 +20,7 @@ final class AppSettings {
         static let shelfRemovesDraggedFiles = "shelfRemovesDraggedFiles"
         static let clipboardEnabled = "clipboardEnabled"
         static let clipboardHotKey = "clipboardHotKey"
+        static let clipboardPastesAfterChoosing = "clipboardPastesAfterChoosing"
     }
 
     /// Delays offered in Settings, in seconds.
@@ -101,6 +102,11 @@ final class AppSettings {
         }
     }
 
+    /// Whether choosing a copy also pastes it into the app in front. Needs Accessibility access to press ⌘V.
+    var clipboardPastesAfterChoosing: Bool {
+        didSet { defaults.set(clipboardPastesAfterChoosing, forKey: Key.clipboardPastesAfterChoosing) }
+    }
+
     private let defaults: any SettingsStore
 
     init(defaults: any SettingsStore = UserDefaults.standard) {
@@ -118,6 +124,7 @@ final class AppSettings {
         shelfEnabled = defaults.object(forKey: Key.shelfEnabled) as? Bool ?? true
         shelfRemovesDraggedFiles = defaults.object(forKey: Key.shelfRemovesDraggedFiles) as? Bool ?? true
         clipboardEnabled = defaults.object(forKey: Key.clipboardEnabled) as? Bool ?? false
+        clipboardPastesAfterChoosing = defaults.object(forKey: Key.clipboardPastesAfterChoosing) as? Bool ?? false
         if let stored = defaults.object(forKey: Key.clipboardHotKey) as? [String: Int],
            let keyCode = stored["keyCode"], let modifiers = stored["modifiers"] {
             clipboardHotKey = HotKey(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers))

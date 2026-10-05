@@ -18,7 +18,7 @@ struct NotchViewModelTests {
             nowPlaying: NowPlayingService(),
             battery: BatteryService(),
             shelf: Shelf(store: InMemorySettingsStore(), promisedFilesDirectory: FileManager.default.temporaryDirectory),
-            clipboard: ClipboardHistory(pasteboard: .withUniqueName()),
+            clipboard: ClipboardHistory(pasteboard: .withUniqueName(), pinnedFile: nil),
             settings: AppSettings(defaults: InMemorySettingsStore())
         )
     }
@@ -200,5 +200,48 @@ struct NotchViewModelTests {
 
         #expect(model.showsActivity)
         #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.hudSideWidth)
+    }
+
+    @Test func searchFiltersTheClipboardAndStartsAtTheTop() throws {
+        let model = makeModel()
+        for text in ["apple pie", "banana bread", "apple juice"] {
+            model.clipboard.add(try #require(ClipboardEntry(items: [[.string: Data(text.utf8)]])))
+        }
+        model.clipboardSelection = 2
+
+        model.clipboardQuery = "apple"
+
+        #expect(model.visibleClipboardEntries.map(\.title) == ["apple juice", "apple pie"])
+        #expect(model.clipboardSelection == 0)
+        model.moveClipboardSelection(by: 5)
+        #expect(model.selectedClipboardEntry?.title == "apple pie")
+    }
+
+    @Test func pinningKeepsTheSameCopySelected() throws {
+        let model = makeModel()
+        for text in ["one", "two", "three"] {
+            model.clipboard.add(try #require(ClipboardEntry(items: [[.string: Data(text.utf8)]])))
+        }
+        model.clipboardSelection = 2
+
+        model.togglePinOfSelectedClipboardEntry()
+
+        #expect(model.selectedClipboardEntry?.title == "one")
+        #expect(model.selectedClipboardEntry?.isPinned == true)
+        #expect(model.clipboardSelection == 0)
+    }
+
+    @Test func choosingPastesOnlyWhenTurnedOn() throws {
+        let model = makeModel()
+        var pastes = 0
+        model.pasteIntoFrontApp = { pastes += 1 }
+        let entry = try #require(ClipboardEntry(items: [[.string: Data("hello".utf8)]]))
+
+        model.choose(entry)
+        #expect(pastes == 0)
+
+        model.settings.clipboardPastesAfterChoosing = true
+        model.choose(entry)
+        #expect(pastes == 1)
     }
 }

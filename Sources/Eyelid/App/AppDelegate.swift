@@ -7,7 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let battery = BatteryService()
     private lazy var headphones = HeadphonesService(settings: settings)
     let shelf = Shelf()
-    let clipboard = ClipboardHistory()
+    let clipboard = ClipboardHistory(pinnedFile: ClipboardHistory.defaultPinnedFile)
     private let hotKeys = HotKeyCenter()
     private(set) lazy var clipboardShortcut = ClipboardShortcut(center: hotKeys, settings: settings)
     private lazy var hud = HUDService(settings: settings)
