@@ -148,6 +148,21 @@ private struct AboutSettings: View {
     var body: some View {
         Form {
             Section {
+                HStack(spacing: 14) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Eyelid")
+                            .font(.title2.weight(.semibold))
+                        Text("An open-source, Dynamic Island–style notch for your MacBook.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
+            Section {
                 LabeledContent("Version", value: Self.version)
                 LabeledContent("License", value: "GNU GPL v3")
                 Link("Source code on GitHub", destination: URL(string: "https://github.com/Nikita19329/Eyelid")!)
