@@ -4,6 +4,8 @@ import SwiftUI
 struct SettingsView: View {
     @Bindable var settings: AppSettings
     let shelf: Shelf
+    let clipboard: ClipboardHistory
+    let clipboardShortcut: ClipboardShortcut
 
     var body: some View {
         TabView {
@@ -17,6 +19,8 @@ struct SettingsView: View {
                 .tabItem { Label("Battery", systemImage: "battery.75percent") }
             ShelfSettings(settings: settings, shelf: shelf)
                 .tabItem { Label("Shelf", systemImage: "tray") }
+            ClipboardSettings(settings: settings, clipboard: clipboard, shortcut: clipboardShortcut)
+                .tabItem { Label("Clipboard", systemImage: "doc.on.clipboard") }
             AboutSettings()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
