@@ -41,9 +41,9 @@ final class AppSettings {
         }
     }
 
-    private let defaults: UserDefaults
+    private let defaults: any SettingsStore
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: any SettingsStore = UserDefaults.standard) {
         self.defaults = defaults
         openDelay = defaults.object(forKey: Key.openDelay) as? TimeInterval ?? 0
         hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
@@ -51,3 +51,13 @@ final class AppSettings {
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
     }
 }
+
+/// Where `AppSettings` keeps its values: `UserDefaults` in the app, memory in tests.
+/// Any `UserDefaults` domain that gets written to stays on disk, even after `removePersistentDomain`.
+protocol SettingsStore: AnyObject {
+    func object(forKey key: String) -> Any?
+    func set(_ value: Any?, forKey key: String)
+    func removeObject(forKey key: String)
+}
+
+extension UserDefaults: SettingsStore {}
