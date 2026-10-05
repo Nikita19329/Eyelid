@@ -85,10 +85,10 @@ struct NotchViewModelTests {
             height: 32 + NotchViewModel.Layout.trackTitleHeight
         ))
         #expect(model.lowerLidDepth == NotchViewModel.Layout.trackTitleHeight)
-        #expect(model.lidFadeHeight == NotchViewModel.Layout.lidFadeHeight)
         #expect(model.bottomRadius == NotchViewModel.Layout.lidBottomRadius)
-        // The text runs above the fade.
-        #expect(NotchViewModel.Layout.trackTitleInset >= NotchViewModel.Layout.lidFadeHeight)
+        // The text runs inside the lid, with room for its descenders.
+        #expect(NotchViewModel.Layout.trackTitleInset >= 4)
+        #expect(NotchViewModel.Layout.trackTitleInset + TrackTitle.fontSize < NotchViewModel.Layout.trackTitleHeight)
     }
 
     @Test func titleThatRanPastGoesUnlessAnotherTookItsPlace() {
@@ -112,7 +112,6 @@ struct NotchViewModelTests {
         #expect(!model.isShowingTrackTitle)
         #expect(model.bodySize.height == 32)
         #expect(model.lowerLidDepth == 0)
-        #expect(model.lidFadeHeight == 0)
         #expect(model.bottomRadius == NotchViewModel.Layout.closedBottomRadius)
 
         model.hud = nil

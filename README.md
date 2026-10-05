@@ -37,7 +37,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget.
 - **In the open notch:** artwork, title, artist, progress and playback controls.
 - **Live activity:** while something plays, the closed notch shows the artwork on one side and an equalizer on the other.
-- **Track title:** when something starts playing, the closed notch drops a little, like a lower eyelid, to show the title in the colors of the artwork. Titles too long to fit scroll by.
+- **Track title:** when something starts playing, the closed notch drops a lower lid, and the title and artist run along its curve from one corner to the other, in the colors of the artwork.
 
 <img src="docs/images/notch-closed.png" alt="The closed notch with artwork on its left and an equalizer on its right" width="720">
 

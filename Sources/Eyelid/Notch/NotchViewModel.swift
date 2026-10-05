@@ -33,11 +33,9 @@ final class NotchViewModel {
         /// How long a new sound output stays next to the closed notch, in seconds.
         static let outputEventDuration: TimeInterval = 3
         /// How far the lower lid hangs below the hardware notch, in the middle, to show the track title.
-        static let trackTitleHeight: CGFloat = 44
+        static let trackTitleHeight: CGFloat = 30
         /// How far above the bottom of the lid the title runs.
-        static let trackTitleInset: CGFloat = 16
-        /// The bottom of the lid fades out like smudged mascara over this height.
-        static let lidFadeHeight: CGFloat = 14
+        static let trackTitleInset: CGFloat = 8
         /// The corners of the lid are pointed, like the corners of an eye.
         static let lidBottomRadius: CGFloat = 2
         /// Transparent margin around the open notch so its shadow is not clipped.
@@ -202,11 +200,6 @@ final class NotchViewModel {
         if trackTitle?.id == id {
             trackTitle = nil
         }
-    }
-
-    /// How far up from the bottom the lid fades out. Nothing fades otherwise.
-    var lidFadeHeight: CGFloat {
-        isShowingTrackTitle ? Layout.lidFadeHeight : 0
     }
 
     /// Size of the notch body, excluding the ears.

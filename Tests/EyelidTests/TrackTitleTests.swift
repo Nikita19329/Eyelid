@@ -79,16 +79,16 @@ struct TrackTitleTests {
     }
 
     @Test func curveRunsAlongTheLidFromCornerToCorner() throws {
-        let curve = LidCurve(width: 269, depth: 44, inset: 16)
+        let curve = LidCurve(width: 269, depth: 30, inset: 8)
 
         let left = try #require(curve.point(at: 0))
         let middle = try #require(curve.point(at: curve.length / 2))
         let right = try #require(curve.point(at: curve.length))
 
         #expect(curve.length > 269)
-        #expect(abs(left.position.x) < 0.001 && abs(left.position.y + 16) < 0.001)
+        #expect(abs(left.position.x) < 0.001 && abs(left.position.y + 8) < 0.001)
         #expect(abs(middle.position.x - 134.5) < 0.5)
-        #expect(abs(middle.position.y - (44 - 16)) < 0.5)
+        #expect(abs(middle.position.y - (30 - 8)) < 0.5)
         #expect(abs(middle.angle) < 0.05)
         #expect(abs(right.position.x - 269) < 0.001)
         // Down into the lid on the left, back up on the right.

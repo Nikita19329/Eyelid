@@ -26,15 +26,15 @@ struct NotchShapeTests {
     }
 
     @Test func lowerLidCurvesLikeAnAlmond() {
-        let rect = CGRect(x: 0, y: 0, width: 281, height: 76)
-        let path = NotchShape(topCornerRadius: 6, bottomCornerRadius: 2, lowerLidDepth: 44).path(in: rect)
-        let cornerY = rect.maxY - 44
+        let rect = CGRect(x: 0, y: 0, width: 281, height: 62)
+        let path = NotchShape(topCornerRadius: 6, bottomCornerRadius: 2, lowerLidDepth: 30).path(in: rect)
+        let cornerY = rect.maxY - 30
 
         // The middle reaches the bottom, so the outline fills its frame.
         #expect(path.boundingRect == rect)
         #expect(path.contains(CGPoint(x: rect.midX, y: rect.maxY - 1)))
         // By the corners, the lid has barely started to hang.
-        #expect(!path.contains(CGPoint(x: 6 + 10, y: cornerY + 20)))
+        #expect(!path.contains(CGPoint(x: 6 + 10, y: cornerY + 14)))
         #expect(path.contains(CGPoint(x: 6 + 10, y: cornerY - 2)))
     }
 }
