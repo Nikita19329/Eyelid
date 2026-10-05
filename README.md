@@ -14,8 +14,9 @@ Eyelid sits on top of the notch and blends in with it. Hover over the notch and 
 - **Hover to open.** It opens when the pointer reaches the notch (with a haptic tick on Force Touch trackpads) and closes when the pointer leaves.
 - **Now Playing from any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget shows up with artwork, progress, and playback controls.
 - **Live activity.** While something plays, the closed notch shows the artwork on one side and an equalizer on the other.
+- **Battery.** Plugging in or unplugging the charger shows the charge next to the notch for a few seconds, and so does the battery dropping to 20% and 10%. The open notch always shows the battery level.
 - **Stays out of the way.** No Dock icon, works on every Space and over full-screen apps, and clicks pass through to the menu bar while the notch is closed.
-- **Settings.** Choose how long the pointer rests on the notch before it opens, turn off haptics or the live activity, pick the display, and launch Eyelid at login.
+- **Settings.** Choose how long the pointer rests on the notch before it opens, turn off haptics, the live activity or battery activity, pick the display, and launch Eyelid at login.
 - **Macs without a notch** get a virtual one at the top of the main display.
 
 ## Install
@@ -101,6 +102,7 @@ Sources/Eyelid/
   App/          App entry point, menu bar item, app delegate
   Notch/        Notch geometry, panel, shape, hover handling, root view
   NowPlaying/   mediaremote-adapter client, now playing model and views
+  Battery/      IOKit battery reading, battery events and views
   Settings/     Preferences, Settings window, launch at login
 Tests/          Unit tests (Swift Testing) for the logic that needs no screen
 Resources/      Info.plist
@@ -112,7 +114,7 @@ Vendor/         mediaremote-adapter (git submodule)
 
 - [x] Settings window: hover delay, haptics, live activity, choice of display
 - [x] Launch at login (`SMAppService`)
-- [ ] Battery and charging activity
+- [x] Battery and charging activity
 - [ ] Volume and brightness HUD
 - [ ] Calendar: upcoming events
 - [ ] File shelf: drop files onto the notch
@@ -126,7 +128,7 @@ Issues and pull requests are welcome. For anything bigger than a small fix, plea
 
 GitHub Actions builds and tests every pull request and every push to `main` and `develop` on macOS 26 with the runner's default Xcode. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
 
-The tests cover what can be checked without a screen: decoding the adapter's output, playback time, notch layout and hover areas, and settings. Behavior on screen, such as hovering, haptics and the look of the notch, still needs a try on a real Mac. Mention what you checked in your pull request.
+The tests cover what can be checked without a screen: decoding the adapter's output, playback time, battery readings and events, notch layout and hover areas, and settings. Behavior on screen, such as hovering, haptics and the look of the notch, still needs a try on a real Mac. Mention what you checked in your pull request.
 
 ## License
 

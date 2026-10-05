@@ -38,6 +38,13 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Battery") {
+                Toggle(isOn: $settings.batteryActivityEnabled) {
+                    Text("Battery activity")
+                    Text("Shows the charge next to the notch when you plug in or unplug the charger, and when the battery drops to 20% and 10%.")
+                }
+            }
+
             Section {
                 LabeledContent("Version", value: Self.version)
                 Link("Source code on GitHub", destination: URL(string: "https://github.com/Nikita19329/Eyelid")!)

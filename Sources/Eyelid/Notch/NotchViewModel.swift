@@ -15,6 +15,8 @@ final class NotchViewModel {
         static let openContentHeight: CGFloat = 108
         /// Extra room on each side of the closed notch for the live activity.
         static let activitySideWidth: CGFloat = 42
+        /// How long a battery event stays next to the closed notch, in seconds.
+        static let batteryEventDuration: TimeInterval = 3
         /// Transparent margin around the open notch so its shadow is not clipped.
         static let shadowPadding: CGFloat = 40
 
@@ -26,17 +28,25 @@ final class NotchViewModel {
 
     var state: State = .closed
     var geometry: NotchGeometry
+    /// Shown next to the closed notch for a few seconds, in place of now playing.
+    var batteryEvent: BatteryEvent?
     let nowPlaying: NowPlayingService
+    let battery: BatteryService
     let settings: AppSettings
 
-    init(geometry: NotchGeometry, nowPlaying: NowPlayingService, settings: AppSettings) {
+    init(geometry: NotchGeometry, nowPlaying: NowPlayingService, battery: BatteryService, settings: AppSettings) {
         self.geometry = geometry
         self.nowPlaying = nowPlaying
+        self.battery = battery
         self.settings = settings
     }
 
-    /// Whether the closed notch grows sideways to show artwork and an equalizer.
+    /// Whether the closed notch grows sideways to show a battery event, or artwork and an equalizer.
     var showsActivity: Bool {
+        batteryEvent != nil || showsNowPlayingActivity
+    }
+
+    var showsNowPlayingActivity: Bool {
         settings.showsLiveActivity && nowPlaying.track?.isPlaying == true
     }
 

@@ -17,6 +17,7 @@ struct NotchView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .animation(animation, value: model.state)
             .animation(animation, value: model.showsActivity)
+            .animation(animation, value: model.batteryEvent)
             .environment(\.colorScheme, .dark)
     }
 
@@ -27,7 +28,10 @@ struct NotchView: View {
             OpenNotchView(model: model)
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
         case .closed:
-            if model.showsActivity, let track = model.nowPlaying.track {
+            if let event = model.batteryEvent {
+                BatteryActivityView(event: event, notchSize: model.geometry.notchSize)
+                    .transition(.opacity)
+            } else if model.showsNowPlayingActivity, let track = model.nowPlaying.track {
                 ClosedActivityView(track: track, notchSize: model.geometry.notchSize)
                     .transition(.opacity)
             }
@@ -40,9 +44,14 @@ private struct OpenNotchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // The strip next to the hardware notch is left empty for now.
-            Color.clear
-                .frame(height: model.geometry.notchSize.height)
+            // The strip beside the hardware notch: the battery sits on the right.
+            HStack {
+                Spacer()
+                if let battery = model.battery.state {
+                    BatteryIndicator(state: battery)
+                }
+            }
+            .frame(height: model.geometry.notchSize.height)
 
             Group {
                 if let track = model.nowPlaying.track {

@@ -4,6 +4,7 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
+    private let battery = BatteryService()
     private var notchController: NotchWindowController?
     private var signalSources: [DispatchSourceSignal] = []
 
@@ -13,7 +14,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         terminateGracefullyOnSignals()
 
         nowPlaying.start()
-        notchController = NotchWindowController(nowPlaying: nowPlaying, settings: settings)
+        battery.start()
+        notchController = NotchWindowController(nowPlaying: nowPlaying, battery: battery, settings: settings)
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -10,6 +10,7 @@ final class AppSettings {
         static let openDelay = "openDelay"
         static let hapticsEnabled = "hapticsEnabled"
         static let showsLiveActivity = "showsLiveActivity"
+        static let batteryActivityEnabled = "batteryActivityEnabled"
         static let displayID = "displayID"
     }
 
@@ -30,6 +31,11 @@ final class AppSettings {
         didSet { defaults.set(showsLiveActivity, forKey: Key.showsLiveActivity) }
     }
 
+    /// Whether plugging in, unplugging and a low battery briefly show the charge next to the notch.
+    var batteryActivityEnabled: Bool {
+        didSet { defaults.set(batteryActivityEnabled, forKey: Key.batteryActivityEnabled) }
+    }
+
     /// The display that shows the notch, or nil to pick one automatically.
     var displayID: CGDirectDisplayID? {
         didSet {
@@ -48,6 +54,7 @@ final class AppSettings {
         openDelay = defaults.object(forKey: Key.openDelay) as? TimeInterval ?? 0
         hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
         showsLiveActivity = defaults.object(forKey: Key.showsLiveActivity) as? Bool ?? true
+        batteryActivityEnabled = defaults.object(forKey: Key.batteryActivityEnabled) as? Bool ?? true
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
     }
 }
