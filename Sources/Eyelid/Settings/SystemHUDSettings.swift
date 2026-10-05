@@ -44,11 +44,17 @@ struct SystemHUDSettings: View {
 }
 
 /// An icon picker for every output device, so devices macOS can't tell apart get the right one.
+/// The tab that shows it keeps `devices` up to date.
 struct OutputDeviceIconSettings: View {
     @Bindable var settings: AppSettings
-    @State private var devices: [OutputDevice] = []
+    let devices: [OutputDevice]
 
     var body: some View {
+        if devices.isEmpty {
+            Text("No output devices")
+                .foregroundStyle(.secondary)
+        }
+
         ForEach(devices) { device in
             let automatic = DeviceIcon.automatic(for: device)
 
@@ -62,16 +68,6 @@ struct OutputDeviceIconSettings: View {
                 }
             } label: {
                 Label(device.name, systemImage: settings.icon(for: device).availableSymbolName)
-            }
-        }
-        // Devices come and go, AirPods especially, so refresh the list while the window is open.
-        .task {
-            while !Task.isCancelled {
-                let current = OutputDevice.all()
-                if current != devices {
-                    devices = current
-                }
-                try? await Task.sleep(for: .seconds(2))
             }
         }
     }
