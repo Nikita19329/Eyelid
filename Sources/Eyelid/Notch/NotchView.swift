@@ -12,7 +12,11 @@ struct NotchView: View {
             .frame(width: size.width, height: size.height, alignment: .top)
             .padding(.horizontal, model.topRadius)
             .background(.black)
-            .clipShape(NotchShape(topCornerRadius: model.topRadius, bottomCornerRadius: model.bottomRadius))
+            .clipShape(NotchShape(
+                topCornerRadius: model.topRadius,
+                bottomCornerRadius: model.bottomRadius,
+                lowerLidDepth: model.lowerLidDepth
+            ))
             .shadow(color: .black.opacity(model.state == .open ? 0.45 : 0), radius: 14, y: 6)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .animation(animation, value: model.state)
@@ -20,6 +24,7 @@ struct NotchView: View {
             .animation(animation, value: model.batteryEvent)
             .animation(animation, value: model.output == nil)
             .animation(animation, value: model.hud == nil)
+            .animation(animation, value: model.isShowingTrackTitle)
             .environment(\.colorScheme, .dark)
     }
 
@@ -30,19 +35,38 @@ struct NotchView: View {
             OpenNotchView(model: model)
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
         case .closed:
-            if let hud = model.hud {
-                HUDView(event: hud, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
-                    .transition(.opacity)
-            } else if let output = model.output {
-                OutputActivityView(event: output, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
-                    .transition(.opacity)
-            } else if let event = model.batteryEvent {
-                BatteryActivityView(event: event, notchSize: model.geometry.notchSize)
-                    .transition(.opacity)
-            } else if model.showsNowPlayingActivity, let track = model.nowPlaying.track {
-                ClosedActivityView(track: track, notchSize: model.geometry.notchSize)
-                    .transition(.opacity)
+            VStack(spacing: 0) {
+                ZStack {
+                    closedActivity
+                }
+                .frame(height: model.geometry.notchSize.height)
+
+                // Below the hardware notch, where the notch drops like a lower eyelid.
+                if model.isShowingTrackTitle, let title = model.trackTitle {
+                    TrackTitleView(title: title, color: model.nowPlaying.track?.artworkColor, width: model.trackTitleWidth)
+                        .frame(height: NotchViewModel.Layout.trackTitleHeight - NotchViewModel.Layout.lowerLidDepth)
+                        .id(title.id)
+                        .transition(.opacity.combined(with: .offset(y: -8)))
+                }
             }
+        }
+    }
+
+    /// Beside the hardware notch: the HUD, an output or battery event, or what's playing.
+    @ViewBuilder
+    private var closedActivity: some View {
+        if let hud = model.hud {
+            HUDView(event: hud, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
+                .transition(.opacity)
+        } else if let output = model.output {
+            OutputActivityView(event: output, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
+                .transition(.opacity)
+        } else if let event = model.batteryEvent {
+            BatteryActivityView(event: event, notchSize: model.geometry.notchSize)
+                .transition(.opacity)
+        } else if model.showsNowPlayingActivity, let track = model.nowPlaying.track {
+            ClosedActivityView(track: track, notchSize: model.geometry.notchSize)
+                .transition(.opacity)
         }
     }
 }

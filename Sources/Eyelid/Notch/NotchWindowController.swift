@@ -17,6 +17,7 @@ final class NotchWindowController {
     private var batteryEventTask: Task<Void, Never>?
     private var hudTask: Task<Void, Never>?
     private var outputTask: Task<Void, Never>?
+    private var trackTitleTask: Task<Void, Never>?
     /// The drag pasteboard changes when a drag starts, which tells drags apart from other mouse moves.
     private var dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
     /// Handles the arrow keys, Return, Delete and Escape while the clipboard history has the keyboard.
@@ -83,7 +84,7 @@ final class NotchWindowController {
             NotificationCenter.default.removeObserver(observer)
         }
         observers = []
-        for task in [openTask, pollTask, batteryEventTask, hudTask, outputTask] {
+        for task in [openTask, pollTask, batteryEventTask, hudTask, outputTask, trackTitleTask] {
             task?.cancel()
         }
         panel.orderOut(nil)
@@ -124,6 +125,7 @@ final class NotchWindowController {
     // MARK: - Volume and brightness
 
     func show(_ event: HUDEvent) {
+        dismissTrackTitle()
         model.hud = event
         // Holding a key repeats it, so the HUD stays until the last press plus the duration.
         hudTask?.cancel()
@@ -140,6 +142,7 @@ final class NotchWindowController {
         logger.debug("Battery event: \(String(describing: event), privacy: .public)")
         guard settings.batteryActivityEnabled else { return }
 
+        dismissTrackTitle()
         model.batteryEvent = event
         batteryEventTask?.cancel()
         batteryEventTask = Task { [weak self] in
@@ -152,6 +155,7 @@ final class NotchWindowController {
     // MARK: - Sound output
 
     func show(_ event: OutputEvent) {
+        dismissTrackTitle()
         model.output = event
         outputTask?.cancel()
         outputTask = Task { [weak self] in
@@ -159,6 +163,29 @@ final class NotchWindowController {
             guard !Task.isCancelled else { return }
             self?.model.output = nil
         }
+    }
+
+    // MARK: - Track title
+
+    /// Drops the notch down for a moment to show what started playing. The open notch shows the track in full
+    /// already.
+    func show(_ title: TrackTitle) {
+        guard model.state == .closed else { return }
+        model.trackTitle = title
+        let duration = title.duration(in: model.trackTitleWidth)
+        trackTitleTask?.cancel()
+        trackTitleTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(duration))
+            guard !Task.isCancelled else { return }
+            self?.model.trackTitle = nil
+        }
+    }
+
+    /// Something else needs the notch, so the title goes now rather than coming back after it.
+    private func dismissTrackTitle() {
+        trackTitleTask?.cancel()
+        trackTitleTask = nil
+        model.trackTitle = nil
     }
 
     // MARK: - Hover
@@ -256,6 +283,7 @@ final class NotchWindowController {
         logger.debug("Opened")
         openTask?.cancel()
         openTask = nil
+        dismissTrackTitle()
         if settings.shelfEnabled {
             if model.isDraggingFiles {
                 model.tab = .shelf

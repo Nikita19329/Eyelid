@@ -9,6 +9,8 @@ private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "N
 @Observable
 final class NowPlayingService {
     private(set) var track: NowPlayingTrack?
+    /// Called when something starts playing: a new track, or the same one after a pause.
+    @ObservationIgnored var onPlaybackStart: (@MainActor (NowPlayingTrack) -> Void)?
 
     @ObservationIgnored private let adapter = MediaRemoteAdapter.locate()
     @ObservationIgnored private var process: Process?
@@ -118,16 +120,19 @@ final class NowPlayingService {
         }
 
         var artwork = track?.artwork
+        var artworkColor = track?.artworkColor
         if snapshot.artworkData != artworkData {
             artworkData = snapshot.artworkData
             artwork = snapshot.artwork.map { NSImage(cgImage: $0.image, size: .zero) }
+            artworkColor = snapshot.artwork?.color
         }
 
         let appURL = snapshot.appBundleIdentifier.flatMap {
             NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
         }
 
-        track = NowPlayingTrack(
+        let previous = track
+        let current = NowPlayingTrack(
             title: snapshot.title,
             artist: snapshot.artist,
             album: snapshot.album,
@@ -138,8 +143,13 @@ final class NowPlayingService {
             timestamp: snapshot.timestamp,
             artwork: artwork,
             appName: appURL.flatMap { FileManager.default.displayName(atPath: $0.path).replacing(".app", with: "") },
-            appIcon: appURL.flatMap { Self.standardRangeIcon(forFile: $0.path) }
+            appIcon: appURL.flatMap { Self.standardRangeIcon(forFile: $0.path) },
+            artworkColor: artworkColor
         )
+        track = current
+        if TrackTitle.isWorthShowing(from: previous, to: current) {
+            onPlaybackStart?(current)
+        }
     }
 
     /// App icons on recent macOS are 16-bit extended-range images, and a single one of them switches

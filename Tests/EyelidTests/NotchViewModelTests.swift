@@ -74,6 +74,34 @@ struct NotchViewModelTests {
         #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.hudSideWidth)
     }
 
+    @Test func trackTitleDropsTheClosedNotchLikeALowerEyelid() {
+        let model = makeModel()
+
+        model.trackTitle = TrackTitle(title: "Song", artist: "Artist")
+
+        #expect(model.isShowingTrackTitle)
+        #expect(model.bodySize == CGSize(
+            width: 185 + 2 * NotchViewModel.Layout.activitySideWidth,
+            height: 32 + NotchViewModel.Layout.trackTitleHeight
+        ))
+        #expect(model.lowerLidDepth == NotchViewModel.Layout.lowerLidDepth)
+        #expect(model.trackTitleWidth == 185 + 2 * NotchViewModel.Layout.activitySideWidth - 2 * NotchViewModel.Layout.trackTitleInset)
+    }
+
+    @Test func otherEventsAndTheOpenNotchHideTheTrackTitle() {
+        let model = makeModel()
+        model.trackTitle = TrackTitle(title: "Song", artist: "Artist")
+
+        model.hud = HUDEvent(kind: .volume, level: 0.5)
+        #expect(!model.isShowingTrackTitle)
+        #expect(model.bodySize.height == 32)
+        #expect(model.lowerLidDepth == 0)
+
+        model.hud = nil
+        model.state = .open
+        #expect(!model.isShowingTrackTitle)
+    }
+
     @Test func pointerOnTheNotchOpensIt() {
         let model = makeModel()
 

@@ -15,13 +15,25 @@ struct NotchShapeTests {
         #expect(shape.path(in: rect).boundingRect == rect)
     }
 
-    @Test func animatesBothRadii() {
+    @Test func animatesBothRadiiAndTheLowerLid() {
         var shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 10)
 
-        shape.animatableData = AnimatablePair(14, 26)
+        shape.animatableData = AnimatablePair(AnimatablePair(14, 26), 5)
 
         #expect(shape.topCornerRadius == 14)
         #expect(shape.bottomCornerRadius == 26)
+        #expect(shape.lowerLidDepth == 5)
+    }
+
+    @Test func lowerLidHangsInTheMiddleAndLiftsTheCorners() {
+        let rect = CGRect(x: 0, y: 0, width: 281, height: 56)
+        let path = NotchShape(topCornerRadius: 6, bottomCornerRadius: 10, lowerLidDepth: 5).path(in: rect)
+
+        // The middle still reaches the bottom, so the outline fills its frame.
+        #expect(path.boundingRect == rect)
+        #expect(path.contains(CGPoint(x: rect.midX, y: rect.maxY - 1)))
+        // Near a bottom corner, the curve has risen.
+        #expect(!path.contains(CGPoint(x: 6 + 12, y: rect.maxY - 2)))
     }
 }
 
