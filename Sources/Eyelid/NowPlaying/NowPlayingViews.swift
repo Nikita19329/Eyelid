@@ -35,6 +35,7 @@ struct NowPlayingCard: View {
 struct ClosedActivityView: View {
     let track: NowPlayingTrack
     let notchSize: CGSize
+    var levels: [Double]? = nil
 
     var body: some View {
         let sideWidth = NotchViewModel.Layout.activitySideWidth
@@ -44,7 +45,7 @@ struct ClosedActivityView: View {
                 .frame(width: sideWidth)
             Spacer()
                 .frame(width: notchSize.width)
-            EqualizerView(isPlaying: track.isPlaying)
+            EqualizerView(isPlaying: track.isPlaying, levels: levels)
                 .frame(width: sideWidth)
         }
         .frame(height: notchSize.height)
@@ -165,22 +166,33 @@ struct PressableButtonStyle: ButtonStyle {
 
 struct EqualizerView: View {
     let isPlaying: Bool
+    /// The sound itself, one level a bar from 0 to 1, when Eyelid listens to it. Otherwise the bars move on their own.
+    var levels: [Double]? = nil
 
     private let speeds: [Double] = [5.1, 6.7, 4.3, 7.9]
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !isPlaying)) { context in
-            let time = context.date.timeIntervalSinceReferenceDate
-
-            HStack(spacing: 2) {
-                ForEach(speeds.indices, id: \.self) { index in
-                    Capsule()
-                        .fill(.white)
-                        .frame(width: 2.5, height: barHeight(index: index, time: time))
-                }
+        if let levels, isPlaying {
+            bars(speeds.indices.map { index in
+                3 + 11 * CGFloat(levels.indices.contains(index) ? levels[index] : 0)
+            })
+        } else {
+            TimelineView(.animation(minimumInterval: 1.0 / 24, paused: !isPlaying)) { context in
+                let time = context.date.timeIntervalSinceReferenceDate
+                bars(speeds.indices.map { barHeight(index: $0, time: time) })
             }
-            .frame(height: 14)
         }
+    }
+
+    private func bars(_ heights: [CGFloat]) -> some View {
+        HStack(spacing: 2) {
+            ForEach(heights.indices, id: \.self) { index in
+                Capsule()
+                    .fill(.white)
+                    .frame(width: 2.5, height: heights[index])
+            }
+        }
+        .frame(height: 14)
     }
 
     private func barHeight(index: Int, time: TimeInterval) -> CGFloat {

@@ -6,6 +6,7 @@ import Observation
 @MainActor
 final class NotchCoordinator {
     private let nowPlaying: NowPlayingService
+    private let audioLevels: AudioLevels
     private let battery: BatteryService
     private let shelf: Shelf
     private let clipboard: ClipboardHistory
@@ -17,6 +18,7 @@ final class NotchCoordinator {
 
     init(
         nowPlaying: NowPlayingService,
+        audioLevels: AudioLevels,
         battery: BatteryService,
         output: OutputService,
         shelf: Shelf,
@@ -26,6 +28,7 @@ final class NotchCoordinator {
         settings: AppSettings
     ) {
         self.nowPlaying = nowPlaying
+        self.audioLevels = audioLevels
         self.battery = battery
         self.shelf = shelf
         self.clipboard = clipboard
@@ -136,6 +139,7 @@ final class NotchCoordinator {
                 kept.append(NotchWindowController(
                     screen: screen,
                     nowPlaying: nowPlaying,
+                    audioLevels: audioLevels,
                     battery: battery,
                     shelf: shelf,
                     clipboard: clipboard,

@@ -12,6 +12,7 @@ struct AppSettingsTests {
         #expect(settings.hapticsEnabled)
         #expect(settings.showsLiveActivity)
         #expect(settings.showsTrackTitle)
+        #expect(!settings.equalizerFollowsAudio)
         #expect(settings.batteryActivityEnabled)
         #expect(settings.outputActivityEnabled)
         #expect(!settings.replacesSystemHUD)
@@ -32,6 +33,7 @@ struct AppSettingsTests {
         settings.hapticsEnabled = false
         settings.showsLiveActivity = false
         settings.showsTrackTitle = false
+        settings.equalizerFollowsAudio = true
         settings.batteryActivityEnabled = false
         settings.outputActivityEnabled = false
         settings.replacesSystemHUD = true
@@ -50,6 +52,7 @@ struct AppSettingsTests {
         #expect(!relaunched.hapticsEnabled)
         #expect(!relaunched.showsLiveActivity)
         #expect(!relaunched.showsTrackTitle)
+        #expect(relaunched.equalizerFollowsAudio)
         #expect(!relaunched.batteryActivityEnabled)
         #expect(!relaunched.outputActivityEnabled)
         #expect(relaunched.replacesSystemHUD)

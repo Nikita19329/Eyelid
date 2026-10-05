@@ -13,13 +13,16 @@ struct NotchViewModelTests {
     )
 
     private func makeModel() -> NotchViewModel {
-        NotchViewModel(
+        let settings = AppSettings(defaults: InMemorySettingsStore())
+        let nowPlaying = NowPlayingService()
+        return NotchViewModel(
             geometry: geometry,
-            nowPlaying: NowPlayingService(),
+            nowPlaying: nowPlaying,
+            audioLevels: AudioLevels(settings: settings, nowPlaying: nowPlaying),
             battery: BatteryService(),
             shelf: Shelf(store: InMemorySettingsStore(), promisedFilesDirectory: FileManager.default.temporaryDirectory),
             clipboard: ClipboardHistory(pasteboard: .withUniqueName(), pinnedFile: nil),
-            settings: AppSettings(defaults: InMemorySettingsStore())
+            settings: settings
         )
     }
 

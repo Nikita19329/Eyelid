@@ -77,6 +77,8 @@ final class NotchViewModel {
     /// Whether the selected copy shows in full, in place of the list.
     var showsClipboardPreview = false
     let nowPlaying: NowPlayingService
+    /// The sound itself, for the equalizer, while Eyelid listens to it.
+    let audioLevels: AudioLevels
     let battery: BatteryService
     let shelf: Shelf
     let clipboard: ClipboardHistory
@@ -90,6 +92,7 @@ final class NotchViewModel {
     init(
         geometry: NotchGeometry,
         nowPlaying: NowPlayingService,
+        audioLevels: AudioLevels,
         battery: BatteryService,
         shelf: Shelf,
         clipboard: ClipboardHistory,
@@ -97,6 +100,7 @@ final class NotchViewModel {
     ) {
         self.geometry = geometry
         self.nowPlaying = nowPlaying
+        self.audioLevels = audioLevels
         self.battery = battery
         self.shelf = shelf
         self.clipboard = clipboard
