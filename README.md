@@ -64,6 +64,8 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Drag them out** to Finder, Mail, a chat or any other app. A file then leaves the shelf, unless you turn that off.
 - **Files stay where they are.** The shelf only keeps a reference. It follows a file you rename or move, and survives a relaunch.
 - **Works with Photos, Mail and Safari,** whose photos, attachments and images only become files once they're dropped. Eyelid saves them in its Application Support folder until they leave the shelf.
+- **All at once.** With several files, the first tile drags them all.
+- **AirDrop** a file from its menu, or all of them with the button beside the files.
 - **Double-click** opens a file. **Right-click** to show it in Finder or remove it.
 
 <img src="docs/images/shelf.png" alt="The shelf in the open notch with a photo, a PDF, a text file, a folder and a zip archive" width="720">
