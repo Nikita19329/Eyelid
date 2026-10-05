@@ -6,6 +6,9 @@
 # Environment:
 #   VERSION=1.2.3   Version to stamp into the app. Defaults to the latest vX.Y.Z tag, or 0.0.0.
 #   UNIVERSAL=1     Build for both arm64 and x86_64 instead of the current architecture only.
+#   CODESIGN_IDENTITY="Apple Development"
+#                   Sign with a real identity instead of ad hoc. macOS then keeps the Accessibility
+#                   permission across rebuilds, since it no longer ties it to one exact build.
 set -euo pipefail
 
 CONFIGURATION="${1:-release}"
@@ -58,8 +61,9 @@ plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Inf
 plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP/Contents/Info.plist"
 echo "    Version $VERSION ($BUILD_NUMBER)"
 
-echo "==> Signing (ad hoc)"
-codesign --force --sign - "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
-codesign --force --sign - "$APP"
+SIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+echo "==> Signing (${SIGN_IDENTITY/#-/ad hoc})"
+codesign --force --sign "$SIGN_IDENTITY" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
+codesign --force --sign "$SIGN_IDENTITY" "$APP"
 
 echo "==> Done: $APP"
