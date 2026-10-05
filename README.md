@@ -13,15 +13,16 @@ Eyelid sits on top of the notch and blends in with it. Hover over the notch and 
 - **Now Playing from any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget shows up with artwork, progress, and playback controls.
 - **Live activity.** While something plays, the closed notch shows the artwork on one side and an equalizer on the other.
 - **Stays out of the way.** No Dock icon, works on every Space and over full-screen apps, and clicks pass through to the menu bar while the notch is closed.
+- **Settings.** Choose how long the pointer rests on the notch before it opens, turn off haptics or the live activity, pick the display, and launch Eyelid at login.
 - **Macs without a notch** get a virtual one at the top of the main display.
 
 ## Requirements
 
 - macOS 14 Sonoma or later (developed on macOS 27)
-- Xcode, or the Command Line Tools for Xcode
+- Xcode
 - CMake: `brew install cmake`
 
-The current code builds with the Command Line Tools alone. On the macOS 27 SDK, though, SwiftUI's `@State` is a macro whose compiler plugin ships only with Xcode, so you'll want Xcode once you start adding views with local state.
+The Command Line Tools alone are not enough: on the macOS 27 SDK, SwiftUI's `@State` is a macro whose compiler plugin ships only with Xcode.
 
 ## Build and run
 
@@ -41,7 +42,7 @@ make run
 
 After `make app` has run once, `swift run` from the repository root works too, which is handy for quick iterations. To work in Xcode, open `Package.swift`.
 
-To quit Eyelid, use the eye icon in the menu bar.
+The eye icon in the menu bar opens Settings and quits Eyelid.
 
 The app is signed ad hoc. If you copy a build to another Mac, Gatekeeper will refuse to open it until you allow it in **System Settings → Privacy & Security**, or remove the quarantine flag:
 
@@ -62,15 +63,16 @@ Sources/Eyelid/
   App/          App entry point, menu bar item, app delegate
   Notch/        Notch geometry, panel, shape, hover handling, root view
   NowPlaying/   mediaremote-adapter client, now playing model and views
+  Settings/     Preferences, Settings window, launch at login
 Resources/      Info.plist
-scripts/        build-app.sh: assembles and signs Eyelid.app without Xcode
+scripts/        build-app.sh: assembles and signs Eyelid.app without an Xcode project
 Vendor/         mediaremote-adapter (git submodule)
 ```
 
 ## Roadmap
 
-- [ ] Settings window: hover delay, haptics, choice of display
-- [ ] Launch at login (`SMAppService`)
+- [x] Settings window: hover delay, haptics, live activity, choice of display
+- [x] Launch at login (`SMAppService`)
 - [ ] Battery and charging activity
 - [ ] Volume and brightness HUD
 - [ ] Calendar: upcoming events

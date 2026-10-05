@@ -2,6 +2,7 @@ import AppKit
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
+    let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
     private var notchController: NotchWindowController?
     private var signalSources: [DispatchSourceSignal] = []
@@ -12,7 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         terminateGracefullyOnSignals()
 
         nowPlaying.start()
-        notchController = NotchWindowController(nowPlaying: nowPlaying)
+        notchController = NotchWindowController(nowPlaying: nowPlaying, settings: settings)
     }
 
     func applicationWillTerminate(_ notification: Notification) {

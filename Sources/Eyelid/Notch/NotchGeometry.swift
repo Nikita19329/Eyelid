@@ -27,8 +27,18 @@ struct NotchGeometry: Equatable {
         }
     }
 
-    /// The built-in display if it has a notch, otherwise the main display.
-    static func preferredScreen() -> NSScreen? {
-        NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
+    /// The chosen display if it is connected. Otherwise the built-in display if it has a notch,
+    /// otherwise the main display.
+    static func preferredScreen(displayID: CGDirectDisplayID?) -> NSScreen? {
+        if let displayID, let screen = NSScreen.screens.first(where: { $0.displayID == displayID }) {
+            return screen
+        }
+        return NSScreen.screens.first { $0.safeAreaInsets.top > 0 } ?? NSScreen.main
+    }
+}
+
+extension NSScreen {
+    var displayID: CGDirectDisplayID? {
+        (deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value
     }
 }

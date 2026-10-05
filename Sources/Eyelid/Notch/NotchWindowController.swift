@@ -8,12 +8,15 @@ private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category:
 final class NotchWindowController {
     private let panel = NotchPanel()
     private let model: NotchViewModel
+    private let settings: AppSettings
     private var mouseMonitors: [Any] = []
+    private var openTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
 
-    init(nowPlaying: NowPlayingService) {
-        let screen = NotchGeometry.preferredScreen() ?? NSScreen.screens[0]
-        model = NotchViewModel(geometry: NotchGeometry(screen: screen), nowPlaying: nowPlaying)
+    init(nowPlaying: NowPlayingService, settings: AppSettings) {
+        self.settings = settings
+        let screen = NotchGeometry.preferredScreen(displayID: settings.displayID) ?? NSScreen.screens[0]
+        model = NotchViewModel(geometry: NotchGeometry(screen: screen), nowPlaying: nowPlaying, settings: settings)
 
         let hostingView = NotchHostingView(rootView: NotchView(model: model))
         hostingView.sizingOptions = []
@@ -23,19 +26,34 @@ final class NotchWindowController {
         panel.orderFrontRegardless()
 
         installMouseMonitors()
+        observeDisplayPreference()
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.screenParametersDidChange()
+                self?.updateScreen()
             }
         }
     }
 
-    private func screenParametersDidChange() {
-        guard let screen = NotchGeometry.preferredScreen() else { return }
+    // MARK: - Placement
+
+    private func observeDisplayPreference() {
+        withObservationTracking {
+            _ = settings.displayID
+        } onChange: { [weak self] in
+            // `onChange` runs before the new value is stored, so read it on the next turn of the main actor.
+            Task { @MainActor in
+                self?.updateScreen()
+                self?.observeDisplayPreference()
+            }
+        }
+    }
+
+    private func updateScreen() {
+        guard let screen = NotchGeometry.preferredScreen(displayID: settings.displayID) else { return }
         model.geometry = NotchGeometry(screen: screen)
         updateFrame()
     }
@@ -80,19 +98,42 @@ final class NotchWindowController {
         let isInside = model.hoverRect.contains(NSEvent.mouseLocation)
         switch (model.state, isInside) {
         case (.closed, true):
-            open()
+            scheduleOpen()
+        case (.closed, false):
+            openTask?.cancel()
+            openTask = nil
         case (.open, false):
             close()
-        default:
+        case (.open, true):
             break
+        }
+    }
+
+    private func scheduleOpen() {
+        let delay = settings.openDelay
+        guard delay > 0 else {
+            open()
+            return
+        }
+        guard openTask == nil else { return }
+
+        // Leaving the notch before the delay is up cancels the task in `updateHover`.
+        openTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(delay))
+            guard !Task.isCancelled else { return }
+            self?.open()
         }
     }
 
     private func open() {
         logger.debug("Opened")
+        openTask?.cancel()
+        openTask = nil
         model.state = .open
         panel.ignoresMouseEvents = false
-        NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        if settings.hapticsEnabled {
+            NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
+        }
 
         // While the cursor is over the panel, global monitors go quiet, so poll to notice it leaving.
         pollTask?.cancel()
