@@ -11,6 +11,7 @@ struct AppSettingsTests {
         #expect(settings.openDelay == 0)
         #expect(settings.hapticsEnabled)
         #expect(settings.showsLiveActivity)
+        #expect(settings.batteryActivityEnabled)
         #expect(settings.displayID == nil)
     }
 
@@ -20,6 +21,7 @@ struct AppSettingsTests {
         settings.openDelay = 0.25
         settings.hapticsEnabled = false
         settings.showsLiveActivity = false
+        settings.batteryActivityEnabled = false
         settings.displayID = 42
 
         let relaunched = AppSettings(defaults: store)
@@ -27,6 +29,7 @@ struct AppSettingsTests {
         #expect(relaunched.openDelay == 0.25)
         #expect(!relaunched.hapticsEnabled)
         #expect(!relaunched.showsLiveActivity)
+        #expect(!relaunched.batteryActivityEnabled)
         #expect(relaunched.displayID == 42)
     }
 
