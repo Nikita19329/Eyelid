@@ -12,11 +12,18 @@ final class NotchWindowController {
     private var mouseMonitors: [Any] = []
     private var openTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
+    private var batteryEventTask: Task<Void, Never>?
+    private var hudTask: Task<Void, Never>?
 
-    init(nowPlaying: NowPlayingService, settings: AppSettings) {
+    init(nowPlaying: NowPlayingService, battery: BatteryService, hud: HUDService, settings: AppSettings) {
         self.settings = settings
         let screen = NotchGeometry.preferredScreen(displayID: settings.displayID) ?? NSScreen.screens[0]
-        model = NotchViewModel(geometry: NotchGeometry(screen: screen), nowPlaying: nowPlaying, settings: settings)
+        model = NotchViewModel(
+            geometry: NotchGeometry(screen: screen),
+            nowPlaying: nowPlaying,
+            battery: battery,
+            settings: settings
+        )
 
         let hostingView = NotchHostingView(rootView: NotchView(model: model))
         hostingView.sizingOptions = []
@@ -27,6 +34,12 @@ final class NotchWindowController {
 
         installMouseMonitors()
         observeDisplayPreference()
+        battery.onEvent = { [weak self] event in
+            self?.show(event)
+        }
+        hud.onEvent = { [weak self] event in
+            self?.show(event)
+        }
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil,
@@ -68,6 +81,34 @@ final class NotchWindowController {
             height: size.height
         )
         panel.setFrame(frame, display: true)
+    }
+
+    // MARK: - Volume and brightness
+
+    private func show(_ event: HUDEvent) {
+        model.hud = event
+        // Holding a key repeats it, so the HUD stays until the last press plus the duration.
+        hudTask?.cancel()
+        hudTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(NotchViewModel.Layout.hudDuration))
+            guard !Task.isCancelled else { return }
+            self?.model.hud = nil
+        }
+    }
+
+    // MARK: - Battery
+
+    private func show(_ event: BatteryEvent) {
+        logger.debug("Battery event: \(String(describing: event), privacy: .public)")
+        guard settings.batteryActivityEnabled else { return }
+
+        model.batteryEvent = event
+        batteryEventTask?.cancel()
+        batteryEventTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(NotchViewModel.Layout.batteryEventDuration))
+            guard !Task.isCancelled else { return }
+            self?.model.batteryEvent = nil
+        }
     }
 
     // MARK: - Hover

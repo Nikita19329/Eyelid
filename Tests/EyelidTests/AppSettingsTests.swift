@@ -11,6 +11,10 @@ struct AppSettingsTests {
         #expect(settings.openDelay == 0)
         #expect(settings.hapticsEnabled)
         #expect(settings.showsLiveActivity)
+        #expect(settings.batteryActivityEnabled)
+        #expect(!settings.replacesSystemHUD)
+        #expect(settings.hudLevelStyle == .bar)
+        #expect(settings.deviceIcons.isEmpty)
         #expect(settings.displayID == nil)
     }
 
@@ -20,6 +24,10 @@ struct AppSettingsTests {
         settings.openDelay = 0.25
         settings.hapticsEnabled = false
         settings.showsLiveActivity = false
+        settings.batteryActivityEnabled = false
+        settings.replacesSystemHUD = true
+        settings.hudLevelStyle = .segments
+        settings.deviceIcons = ["headset-uid": .headset]
         settings.displayID = 42
 
         let relaunched = AppSettings(defaults: store)
@@ -27,6 +35,10 @@ struct AppSettingsTests {
         #expect(relaunched.openDelay == 0.25)
         #expect(!relaunched.hapticsEnabled)
         #expect(!relaunched.showsLiveActivity)
+        #expect(!relaunched.batteryActivityEnabled)
+        #expect(relaunched.replacesSystemHUD)
+        #expect(relaunched.hudLevelStyle == .segments)
+        #expect(relaunched.deviceIcons == ["headset-uid": .headset])
         #expect(relaunched.displayID == 42)
     }
 
@@ -39,6 +51,16 @@ struct AppSettingsTests {
 
         #expect(store.object(forKey: "displayID") == nil)
         #expect(AppSettings(defaults: store).displayID == nil)
+    }
+
+    @Test func pickedDeviceIconWinsOverTheAutomaticOne() {
+        let settings = AppSettings(defaults: InMemorySettingsStore())
+        let headset = OutputDevice(id: "headset-uid", name: "Jabra Evolve", transport: .bluetooth, isHeadphoneJack: false, modelUID: nil)
+        #expect(settings.icon(for: headset) == .headphones)
+
+        settings.deviceIcons[headset.id] = .headset
+
+        #expect(settings.icon(for: headset) == .headset)
     }
 
     @Test func offeredDelaysStartWithInstantly() {

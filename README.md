@@ -1,46 +1,110 @@
+<div align="center">
+
 # Eyelid
 
+**An open-source, Dynamic Island–style notch for your MacBook.**
+
 [![Build](https://github.com/Nikita19329/Eyelid/actions/workflows/build.yml/badge.svg)](https://github.com/Nikita19329/Eyelid/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/Nikita19329/Eyelid)](https://github.com/Nikita19329/Eyelid/releases/latest)
+[![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)](#install)
+[![License: GPL v3](https://img.shields.io/github/license/Nikita19329/Eyelid)](LICENSE)
 
-An open-source, Dynamic Island–style notch for your MacBook.
+<img src="docs/images/notch-open.png" alt="The open notch with a playing track: artwork, title, progress, playback controls, and the battery level beside the notch" width="720">
 
-Eyelid sits on top of the notch and blends in with it. Hover over the notch and it opens up to show what's playing; move the pointer away and it tucks back in.
+</div>
 
-> **Status:** early prototype. Expect rough edges and breaking changes.
+Eyelid lives in the notch and blends in with it. Hover over the notch and it opens to show what's playing. Press a volume or brightness key and the level appears beside the notch instead of the system HUD. Plug in the charger and the battery shows up for a moment.
+
+> **Status:** early, but usable day to day. Expect rough edges.
+
+**Contents:** [Features](#features) · [Install](#install) · [Privacy](#privacy) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Security](#security) · [Contributing](#contributing) · [Roadmap](#roadmap) · [License](#license)
 
 ## Features
 
-- **Blends into the notch.** The closed notch matches the hardware cutout, so you don't notice Eyelid until you need it.
-- **Hover to open.** It opens when the pointer reaches the notch (with a haptic tick on Force Touch trackpads) and closes when the pointer leaves.
-- **Now Playing from any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget shows up with artwork, progress, and playback controls.
-- **Live activity.** While something plays, the closed notch shows the artwork on one side and an equalizer on the other.
-- **Stays out of the way.** No Dock icon, works on every Space and over full-screen apps, and clicks pass through to the menu bar while the notch is closed.
-- **Settings.** Choose how long the pointer rests on the notch before it opens, turn off haptics or the live activity, pick the display, and launch Eyelid at login.
+### The notch
+
+- **Blends in.** The closed notch matches the hardware cutout, so you don't notice Eyelid until you need it.
+- **Hover to open.** The notch opens when the pointer reaches it and closes when the pointer leaves. You can add a delay, and Force Touch trackpads give a haptic tick.
+- **Stays out of the way.** No Dock icon, on every Space and over full-screen apps. Clicks pass through to the menu bar while the notch is closed.
 - **Macs without a notch** get a virtual one at the top of the main display.
 
-## Install
+### Now Playing
 
-Download the latest `Eyelid-*.zip` from [Releases](https://github.com/Nikita19329/Eyelid/releases/latest), unzip it, and move `Eyelid.app` to Applications. Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs.
+- **Any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget.
+- **In the open notch:** artwork, title, artist, progress and playback controls.
+- **Live activity:** while something plays, the closed notch shows the artwork on one side and an equalizer on the other.
 
-Eyelid isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
+<img src="docs/images/notch-closed.png" alt="The closed notch with artwork on its left and an equalizer on its right" width="720">
 
-```sh
-xattr -dr com.apple.quarantine /Applications/Eyelid.app
-```
+### Volume and brightness
+
+- **Replaces the system HUD.** The volume, mute and brightness keys show an icon on the left of the notch and the level on the right, whether the notch is closed or open.
+- **Knows the output device.** AirPods of every model, Beats, headphones, the MacBook speakers, displays, AirPlay. You can pick the icon for each device.
+- **Five level styles:** bar, thick bar, segments, percentage and ring.
+- **Fine steps.** Option-Shift changes the level in quarter steps, as in macOS.
+- **Off by default,** since handling the keys needs Accessibility access. See [Volume and brightness HUD](#volume-and-brightness-hud).
+
+<img src="docs/images/hud-styles.png" alt="The five level styles for AirPods, the MacBook speakers and brightness" width="560">
+
+### Battery
+
+- **Charging and unplugging.** Plugging in or unplugging the charger shows the charge beside the notch for a few seconds, green while charging.
+- **Low battery warnings** at 20% and 10%.
+- **Battery level** in the open notch.
+
+### Settings
 
 The eye icon in the menu bar opens Settings and quits Eyelid.
 
+| Tab | What's there |
+|---|---|
+| General | Launch at login, the display that shows the notch |
+| Notch | Hover delay, haptic feedback, live activity |
+| Volume & Brightness | The HUD, its level style, and an icon for each output device |
+| Battery | Battery activity |
+
+<img src="docs/images/settings.png" alt="The Volume & Brightness tab of Eyelid's settings" width="420">
+
+## Install
+
+Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs. It's made for MacBooks with a notch; other Macs get a virtual one.
+
+1. Download `Eyelid-X.Y.Z.zip` from the [latest release](https://github.com/Nikita19329/Eyelid/releases/latest).
+2. **Optional:** check that the zip was built from this repository by its Release workflow, with the [GitHub CLI](https://cli.github.com):
+
+   ```sh
+   gh attestation verify Eyelid-0.2.0.zip --repo Nikita19329/Eyelid
+   ```
+
+3. Unzip it and move `Eyelid.app` to Applications.
+4. Open Eyelid. It isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
+
+   ```sh
+   xattr -dr com.apple.quarantine /Applications/Eyelid.app
+   ```
+
+### Volume and brightness HUD
+
+1. Open **Settings → Volume & Brightness** and turn on **Volume and brightness**.
+2. macOS asks for Accessibility access. Allow Eyelid in **System Settings → Privacy & Security → Accessibility**. Eyelid picks the change up within a few seconds, no restart needed.
+
+Releases are signed ad hoc, so macOS ties the permission to one exact build. After updating Eyelid, remove it from the Accessibility list and allow it again. Eyelid shows the prompt on launch.
+
+### Updating and uninstalling
+
+- **Update:** quit Eyelid from the menu bar, replace `Eyelid.app` with the new one, and open it.
+- **Uninstall:** turn off **Launch at login** in Settings, quit Eyelid, and delete `Eyelid.app`. To remove its settings too, run `defaults delete io.github.nikita19329.eyelid`, and remove Eyelid from the Accessibility list if you allowed it there.
+
+## Privacy
+
+- **Nothing leaves your Mac.** Eyelid never connects to the internet and has no analytics or telemetry.
+- **What it reads stays local.** What's playing, the battery and the audio devices are read on your Mac and never logged.
+- **Accessibility only if you ask for it.** Eyelid requests it only when you turn on the volume and brightness HUD, and then handles only the volume, mute and brightness keys. Other keys aren't touched.
+- **Settings** are stored in macOS user defaults.
+
 ## Build from source
 
-### Requirements
-
-- macOS 14 Sonoma or later (developed on macOS 27)
-- Xcode
-- CMake: `brew install cmake`
-
-The Command Line Tools alone are not enough: on the macOS 27 SDK, SwiftUI's `@State` is a macro whose compiler plugin ships only with Xcode.
-
-### Build and run
+You need macOS 14 or later, Xcode, and CMake (`brew install cmake`). The Command Line Tools alone are not enough: on the macOS 27 SDK, SwiftUI's `@State` is a macro whose compiler plugin ships only with Xcode.
 
 ```sh
 git clone --recurse-submodules https://github.com/Nikita19329/Eyelid.git
@@ -48,74 +112,108 @@ cd Eyelid
 make run
 ```
 
-`make run` builds `build/Eyelid.app`, quits a running copy, and launches the new one. Other targets:
+| Command      | What it does                                                          |
+|--------------|-----------------------------------------------------------------------|
+| `make run`   | Builds `build/Eyelid.app`, quits a running copy, and opens the new one |
+| `make app`   | Release build of `build/Eyelid.app`                                   |
+| `make debug` | Debug build of `build/Eyelid.app`                                     |
+| `make test`  | Runs the unit tests                                                   |
+| `make clean` | Removes `.build` and `build`                                          |
 
-| Command      | What it does                                   |
-|--------------|------------------------------------------------|
-| `make app`   | Release build of `build/Eyelid.app`            |
-| `make debug` | Debug build of `build/Eyelid.app`              |
-| `make test`  | Runs the unit tests (`swift test`)             |
-| `make clean` | Removes `.build` and `build`                   |
-
-After `make app` has run once, `swift run` from the repository root works too, which is handy for quick iterations. To work in Xcode, open `Package.swift`.
-
-The version comes from git: builds show the latest `vX.Y.Z` tag and the commit count as the build number. `UNIVERSAL=1 make app` builds for both Apple silicon and Intel.
-
-## Releasing
-
-Push a version tag:
-
-```sh
-git tag -a v0.2.0 -m "Eyelid 0.2.0"
-git push origin v0.2.0
-```
-
-The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version and the signature. Then it publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
+- **Quick iterations:** after `make app` has run once, `swift run` from the repository root works too. To work in Xcode, open `Package.swift`.
+- **Versions come from git:** builds show the latest `vX.Y.Z` tag, and the commit count as the build number.
+- **Universal builds:** `UNIVERSAL=1 make app` builds for both Apple silicon and Intel.
+- **Signing:** `make` signs with the first Apple Development certificate in your keychain, so macOS keeps the Accessibility permission across rebuilds. Without a certificate it signs ad hoc, and the permission has to be granted again after every rebuild. To get a free certificate, sign in with an Apple ID in **Xcode → Settings → Accounts**, then choose **Manage Certificates… → + → Apple Development**. `CODESIGN_IDENTITY=-` forces ad hoc, and `CODESIGN_IDENTITY="…"` picks another identity. The certificate carries your Apple ID email, so share only release builds, which CI signs ad hoc.
 
 ## How it works
 
-**The notch window.** A borderless, non-activating `NSPanel` floats just above the menu bar on every Space. Its size comes from `NSScreen.safeAreaInsets` and the `auxiliaryTopLeftArea` / `auxiliaryTopRightArea` next to the notch. The panel ignores mouse events while closed, so the menu bar under it stays clickable. A global mouse monitor opens it when the pointer enters the notch. Mouse events, unlike key events, don't need the Accessibility permission.
+**The notch window.** A borderless, non-activating `NSPanel` floats just above the menu bar on every Space. Its size comes from `NSScreen.safeAreaInsets` and the `auxiliaryTopLeftArea` and `auxiliaryTopRightArea` next to the notch. The panel ignores mouse events while closed, so the menu bar under it stays clickable. A global mouse monitor opens it when the pointer enters the notch. Mouse events, unlike key events, don't need the Accessibility permission.
 
-**Now Playing.** Since macOS 15.4, MediaRemote (the private framework behind the Now Playing widget) only answers Apple's own entitled processes. Eyelid uses [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter). The adapter loads a small framework into Apple's signed `/usr/bin/perl`, which is still allowed to query MediaRemote, and streams updates as JSON lines. Eyelid runs `mediaremote-adapter.pl … stream` as a child process and decodes its output.
+**Now Playing.** Since macOS 15.4, MediaRemote, the private framework behind the Now Playing widget, only answers Apple's own entitled processes. Eyelid uses [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter): it loads a small framework into Apple's signed `/usr/bin/perl`, which is still allowed to query MediaRemote, and streams updates as JSON lines. Eyelid runs it as a child process and decodes its output.
 
-## Project layout
+**Volume and brightness.** An event tap intercepts the volume, mute and brightness keys. Eyelid changes the level itself, so macOS never sees the press and never shows its HUD. Volume goes through CoreAudio. macOS has no public API for display brightness, so Eyelid calls the private DisplayServices framework, as MonitorControl and similar utilities do. Keys Eyelid can't handle, such as on an output without volume control, go to macOS as usual.
 
-```
-Sources/Eyelid/
-  App/          App entry point, menu bar item, app delegate
-  Notch/        Notch geometry, panel, shape, hover handling, root view
-  NowPlaying/   mediaremote-adapter client, now playing model and views
-  Settings/     Preferences, Settings window, launch at login
-Tests/          Unit tests (Swift Testing) for the logic that needs no screen
-Resources/      Info.plist
-scripts/        build-app.sh: assembles and signs Eyelid.app without an Xcode project
-Vendor/         mediaremote-adapter (git submodule)
-```
+**Device icons.** The volume HUD picks the icon from what CoreAudio reports about the output: the connection type, whether wired headphones are plugged in, and for Bluetooth the model UID, which holds the vendor and product ID. That's enough for AirPods and Beats, even after renaming them. Other Bluetooth devices all look like headphones to macOS, hence the per-device icon setting.
 
-## Roadmap
+**Battery.** IOKit's power source notifications report every change, and Eyelid turns them into plug, unplug and low battery events.
 
-- [x] Settings window: hover delay, haptics, live activity, choice of display
-- [x] Launch at login (`SMAppService`)
-- [ ] Battery and charging activity
-- [ ] Volume and brightness HUD
-- [ ] Calendar: upcoming events
-- [ ] File shelf: drop files onto the notch
-- [ ] Notches on several displays at once
-- [x] Universal (arm64 + x86_64) release builds from version tags
-- [ ] Sparkle updates, Homebrew cask, notarization
+## Security
+
+With the volume and brightness HUD on, Eyelid holds Accessibility access: it can watch input and control other apps. So the main risk is another program on the Mac getting its code to run with that access. Eyelid guards against this:
+
+- **No code loading into Eyelid.** Builds are signed with the hardened runtime. The app binary also has a `__RESTRICT` segment, so dyld ignores `DYLD_*` variables, which the hardened runtime alone doesn't ensure for ad hoc signed builds. The Release workflow fails if either protection is missing.
+- **A clean environment for perl.** macOS treats Eyelid as responsible for its child processes, and perl runs code named in variables such as `PERL5OPT`. So the adapter starts with nothing but `PATH`.
+- **Code only from the bundle.** Release builds load the adapter only from the app bundle. Looking in the working directory, for `swift run`, is limited to debug builds.
+- **Careful with artwork.** Any app or web page can set now playing artwork. Eyelid drops images over about 8 MB or 50 megapixels, decodes the rest away from the main thread, and scales them down to what the notch shows.
+- **Supply chain.** mediaremote-adapter is pinned to a reviewed release. Workflows pin GitHub Actions to commit SHAs, which Dependabot keeps current. Release zips come with a build provenance attestation.
 
 ## Contributing
 
 Issues and pull requests are welcome. For anything bigger than a small fix, please open an issue first so we can agree on the approach.
 
-GitHub Actions builds and tests every pull request and every push to `main` on macOS 26 with the runner's default Xcode. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
+- **Branches:** `main` is the latest release, and `develop` collects work for the next one. It's the default branch, so branch off it, for example `feat/calendar`, and open your pull request against it.
+- **Commits** follow [Conventional Commits](https://www.conventionalcommits.org): `feat:`, `fix:`, `docs:`, `ci:` and so on.
+- **CI** builds and tests every pull request and every push to `main` and `develop` on macOS 26. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
+- **Tests** cover what can be checked without a screen: decoding the adapter's output, playback time, battery events, media keys and level steps, device icons, notch layout and hover areas, settings, and artwork limits. Behavior on screen, such as hovering, haptics and the look of the notch, still needs a try on a real Mac. Mention what you checked in your pull request.
 
-The tests cover what can be checked without a screen: decoding the adapter's output, playback time, notch layout and hover areas, and settings. Behavior on screen, such as hovering, haptics and the look of the notch, still needs a try on a real Mac. Mention what you checked in your pull request.
+<details>
+<summary><b>Releasing</b> (maintainers)</summary>
+
+1. Open a pull request from `develop` to `main` titled `Release X.Y.Z`, and merge it with a merge commit once the checks pass.
+2. Tag the merge commit on `main`:
+
+   ```sh
+   git switch main && git pull
+   git tag -a v0.2.0 -m "Eyelid 0.2.0"
+   git push origin v0.2.0
+   ```
+
+3. Bring the release back into `develop`, so development builds pick up the new version:
+
+   ```sh
+   git switch develop && git pull
+   git merge main
+   git push
+   ```
+
+The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version, the signature and the protections listed under [Security](#security). This build job can only read the repository. A separate publish job, the only one that can write, signs a build provenance attestation for the zip, then publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
+
+</details>
+
+<details>
+<summary><b>Project layout</b></summary>
+
+```
+Sources/Eyelid/
+  App/          App entry point, menu bar item, app delegate
+  Notch/        Notch geometry, panel, shape, hover handling, root view
+  NowPlaying/   mediaremote-adapter client, now playing model, artwork, views
+  Battery/      IOKit battery reading, battery events and views
+  HUD/          Media key tap, volume (CoreAudio), brightness (DisplayServices), device icons, HUD view
+  Settings/     Preferences, Settings window, launch at login
+Tests/          Unit tests (Swift Testing) for the logic that needs no screen
+Resources/      Info.plist
+scripts/        build-app.sh: builds, stamps and signs Eyelid.app without an Xcode project
+Vendor/         mediaremote-adapter (git submodule)
+docs/images/    Images for this README, rendered from Eyelid's own views
+```
+
+</details>
+
+## Roadmap
+
+- [ ] Calendar: upcoming events
+- [ ] File shelf: drop files onto the notch
+- [ ] Notches on several displays at once
+- [ ] Automatic updates (Sparkle), a Homebrew cask, notarization
+
+What's already in each version is in the [release notes](https://github.com/Nikita19329/Eyelid/releases).
+
+## Acknowledgements
+
+- [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter) by Jonas van den Berg and contributors makes Now Playing possible on current macOS. It's licensed under the BSD 3-Clause License, and its license text is in the app bundle under `Contents/Resources/Licenses`.
+- Eyelid is inspired by Dynamic Island and by notch apps such as Alcove and boring.notch. It is an independent project and is not affiliated with Apple or with any of those apps.
 
 ## License
 
 Eyelid is licensed under the [GNU General Public License v3.0](LICENSE).
-
-It bundles [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter) by Jonas van den Berg and contributors, licensed under the BSD 3-Clause License. Its license text is included in the app bundle under `Contents/Resources/Licenses`.
-
-Eyelid is inspired by Dynamic Island and by notch apps such as Alcove and boring.notch. It is an independent project and is not affiliated with Apple or with any of those apps.

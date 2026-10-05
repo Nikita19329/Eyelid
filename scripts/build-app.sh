@@ -6,6 +6,9 @@
 # Environment:
 #   VERSION=1.2.3   Version to stamp into the app. Defaults to the latest vX.Y.Z tag, or 0.0.0.
 #   UNIVERSAL=1     Build for both arm64 and x86_64 instead of the current architecture only.
+#   CODESIGN_IDENTITY=…  Signing identity. Defaults to the first Apple Development certificate in the
+#                   keychain, or ad hoc without one; "-" forces ad hoc. A real identity makes macOS keep
+#                   the Accessibility permission across rebuilds, since it no longer ties it to one build.
 set -euo pipefail
 
 CONFIGURATION="${1:-release}"
@@ -58,8 +61,14 @@ plutil -replace CFBundleShortVersionString -string "$VERSION" "$APP/Contents/Inf
 plutil -replace CFBundleVersion -string "$BUILD_NUMBER" "$APP/Contents/Info.plist"
 echo "    Version $VERSION ($BUILD_NUMBER)"
 
-echo "==> Signing (ad hoc)"
-codesign --force --sign - "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
-codesign --force --sign - "$APP"
+if [[ -z "${CODESIGN_IDENTITY:-}" ]]; then
+  CODESIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null | awk -F'"' '/"Apple Development/ { print $2; exit }')"
+fi
+SIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
+echo "==> Signing (${SIGN_IDENTITY/#-/ad hoc})"
+# The hardened runtime protects the process that holds Accessibility access. Signed with a real
+# identity, it also only lets Apple's libraries and the identity's own into the process.
+codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
+codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP"
 
 echo "==> Done: $APP"

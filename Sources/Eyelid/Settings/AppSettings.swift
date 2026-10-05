@@ -10,6 +10,10 @@ final class AppSettings {
         static let openDelay = "openDelay"
         static let hapticsEnabled = "hapticsEnabled"
         static let showsLiveActivity = "showsLiveActivity"
+        static let batteryActivityEnabled = "batteryActivityEnabled"
+        static let replacesSystemHUD = "replacesSystemHUD"
+        static let hudLevelStyle = "hudLevelStyle"
+        static let deviceIcons = "deviceIcons"
         static let displayID = "displayID"
     }
 
@@ -30,6 +34,26 @@ final class AppSettings {
         didSet { defaults.set(showsLiveActivity, forKey: Key.showsLiveActivity) }
     }
 
+    /// Whether plugging in, unplugging and a low battery briefly show the charge next to the notch.
+    var batteryActivityEnabled: Bool {
+        didSet { defaults.set(batteryActivityEnabled, forKey: Key.batteryActivityEnabled) }
+    }
+
+    /// Whether Eyelid handles the volume and brightness keys and shows the change next to the notch
+    /// instead of the system HUD. Off by default, since it needs Accessibility access.
+    var replacesSystemHUD: Bool {
+        didSet { defaults.set(replacesSystemHUD, forKey: Key.replacesSystemHUD) }
+    }
+
+    var hudLevelStyle: LevelStyle {
+        didSet { defaults.set(hudLevelStyle.rawValue, forKey: Key.hudLevelStyle) }
+    }
+
+    /// Icons picked for output devices, by CoreAudio device UID. Devices without one get `DeviceIcon.automatic`.
+    var deviceIcons: [String: DeviceIcon] {
+        didSet { defaults.set(deviceIcons.mapValues(\.rawValue), forKey: Key.deviceIcons) }
+    }
+
     /// The display that shows the notch, or nil to pick one automatically.
     var displayID: CGDirectDisplayID? {
         didSet {
@@ -48,7 +72,18 @@ final class AppSettings {
         openDelay = defaults.object(forKey: Key.openDelay) as? TimeInterval ?? 0
         hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
         showsLiveActivity = defaults.object(forKey: Key.showsLiveActivity) as? Bool ?? true
+        batteryActivityEnabled = defaults.object(forKey: Key.batteryActivityEnabled) as? Bool ?? true
+        replacesSystemHUD = defaults.object(forKey: Key.replacesSystemHUD) as? Bool ?? false
+        hudLevelStyle = (defaults.object(forKey: Key.hudLevelStyle) as? String).flatMap(LevelStyle.init(rawValue:)) ?? .bar
+        deviceIcons = (defaults.object(forKey: Key.deviceIcons) as? [String: String] ?? [:])
+            .compactMapValues(DeviceIcon.init(rawValue:))
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
+    }
+}
+
+extension AppSettings {
+    func icon(for device: OutputDevice) -> DeviceIcon {
+        deviceIcons[device.id] ?? .automatic(for: device)
     }
 }
 

@@ -17,6 +17,8 @@ struct NotchView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .animation(animation, value: model.state)
             .animation(animation, value: model.showsActivity)
+            .animation(animation, value: model.batteryEvent)
+            .animation(animation, value: model.hud == nil)
             .environment(\.colorScheme, .dark)
     }
 
@@ -27,7 +29,13 @@ struct NotchView: View {
             OpenNotchView(model: model)
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
         case .closed:
-            if model.showsActivity, let track = model.nowPlaying.track {
+            if let hud = model.hud {
+                HUDView(event: hud, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
+                    .transition(.opacity)
+            } else if let event = model.batteryEvent {
+                BatteryActivityView(event: event, notchSize: model.geometry.notchSize)
+                    .transition(.opacity)
+            } else if model.showsNowPlayingActivity, let track = model.nowPlaying.track {
                 ClosedActivityView(track: track, notchSize: model.geometry.notchSize)
                     .transition(.opacity)
             }
@@ -40,9 +48,24 @@ private struct OpenNotchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // The strip next to the hardware notch is left empty for now.
-            Color.clear
-                .frame(height: model.geometry.notchSize.height)
+            // The strip beside the hardware notch: the volume and brightness HUD in the same places as
+            // in the closed notch, otherwise the battery on the right.
+            ZStack {
+                if let hud = model.hud {
+                    HUDView(event: hud, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
+                        .transition(.opacity)
+                } else {
+                    HStack {
+                        Spacer()
+                        if let battery = model.battery.state {
+                            BatteryIndicator(state: battery)
+                        }
+                    }
+                    .transition(.opacity)
+                }
+            }
+            .frame(height: model.geometry.notchSize.height)
+            .animation(.easeOut(duration: 0.15), value: model.hud == nil)
 
             Group {
                 if let track = model.nowPlaying.track {

@@ -15,6 +15,12 @@ final class NotchViewModel {
         static let openContentHeight: CGFloat = 108
         /// Extra room on each side of the closed notch for the live activity.
         static let activitySideWidth: CGFloat = 42
+        /// Room on each side of the closed notch for the volume and brightness HUD.
+        static let hudSideWidth: CGFloat = 70
+        /// How long the HUD stays after the last key press, in seconds.
+        static let hudDuration: TimeInterval = 1.5
+        /// How long a battery event stays next to the closed notch, in seconds.
+        static let batteryEventDuration: TimeInterval = 3
         /// Transparent margin around the open notch so its shadow is not clipped.
         static let shadowPadding: CGFloat = 40
 
@@ -26,17 +32,27 @@ final class NotchViewModel {
 
     var state: State = .closed
     var geometry: NotchGeometry
+    /// The volume or brightness after a key press. Shown in place of everything else.
+    var hud: HUDEvent?
+    /// Shown next to the closed notch for a few seconds, in place of now playing.
+    var batteryEvent: BatteryEvent?
     let nowPlaying: NowPlayingService
+    let battery: BatteryService
     let settings: AppSettings
 
-    init(geometry: NotchGeometry, nowPlaying: NowPlayingService, settings: AppSettings) {
+    init(geometry: NotchGeometry, nowPlaying: NowPlayingService, battery: BatteryService, settings: AppSettings) {
         self.geometry = geometry
         self.nowPlaying = nowPlaying
+        self.battery = battery
         self.settings = settings
     }
 
-    /// Whether the closed notch grows sideways to show artwork and an equalizer.
+    /// Whether the closed notch grows sideways to show the HUD, a battery event, or artwork and an equalizer.
     var showsActivity: Bool {
+        hud != nil || batteryEvent != nil || showsNowPlayingActivity
+    }
+
+    var showsNowPlayingActivity: Bool {
         settings.showsLiveActivity && nowPlaying.track?.isPlaying == true
     }
 
@@ -47,7 +63,8 @@ final class NotchViewModel {
         case .open:
             return CGSize(width: Layout.openWidth, height: notch.height + Layout.openContentHeight)
         case .closed:
-            let extra = showsActivity ? 2 * Layout.activitySideWidth : 0
+            let sideWidth = hud != nil ? Layout.hudSideWidth : (showsActivity ? Layout.activitySideWidth : 0)
+            let extra = 2 * sideWidth
             return CGSize(width: notch.width + extra, height: notch.height)
         }
     }
