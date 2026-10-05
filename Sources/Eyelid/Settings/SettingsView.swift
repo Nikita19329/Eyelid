@@ -106,13 +106,20 @@ private struct VolumeAndBrightnessSettings: View {
                 SystemHUDSettings(settings: settings)
             }
 
-            if settings.replacesSystemHUD {
+            Section {
+                Toggle(isOn: $settings.outputActivityEnabled) {
+                    Text("Output changes")
+                    Text("When sound switches to other speakers or headphones, shows them next to the notch: AirPods and Beats with their charge and the earbuds in use, others with their volume.")
+                }
+            }
+
+            if settings.replacesSystemHUD || settings.outputActivityEnabled {
                 Section {
                     OutputDeviceIconSettings(settings: settings, devices: devices)
                 } header: {
                     Text("Output devices")
                 } footer: {
-                    Text("The icon the volume HUD shows for each device. macOS knows AirPods and Beats, but other Bluetooth devices all look like headphones to it.")
+                    Text("The icon the notch shows for each device. macOS knows AirPods and Beats, but other Bluetooth devices all look like headphones to it.")
                 }
             }
         }

@@ -192,6 +192,16 @@ struct NotchViewModelTests {
         #expect(closed)
     }
 
+    @Test func aNewOutputComesBeforeABatteryEvent() {
+        let model = makeModel()
+        model.batteryEvent = .unplugged(BatteryState(level: 50, isPluggedIn: false, isCharging: false))
+
+        model.output = OutputEvent(deviceID: "airpods", name: "AirPods Pro", icon: .airpodsPro)
+
+        #expect(model.showsActivity)
+        #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.hudSideWidth)
+    }
+
     @Test func searchFiltersTheClipboardAndStartsAtTheTop() throws {
         let model = makeModel()
         for text in ["apple pie", "banana bread", "apple juice"] {

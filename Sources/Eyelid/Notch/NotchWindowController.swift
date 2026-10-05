@@ -15,6 +15,7 @@ final class NotchWindowController {
     private var pollTask: Task<Void, Never>?
     private var batteryEventTask: Task<Void, Never>?
     private var hudTask: Task<Void, Never>?
+    private var outputTask: Task<Void, Never>?
     /// The drag pasteboard changes when a drag starts, which tells drags apart from other mouse moves.
     private var dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
     /// Handles the arrow keys, Return, Delete and Escape while the clipboard history has the keyboard.
@@ -23,6 +24,7 @@ final class NotchWindowController {
     init(
         nowPlaying: NowPlayingService,
         battery: BatteryService,
+        output: OutputService,
         shelf: Shelf,
         clipboard: ClipboardHistory,
         clipboardShortcut: ClipboardShortcut,
@@ -52,6 +54,9 @@ final class NotchWindowController {
         installMouseMonitors()
         observeDisplayPreference()
         battery.onEvent = { [weak self] event in
+            self?.show(event)
+        }
+        output.onEvent = { [weak self] event in
             self?.show(event)
         }
         hud.onEvent = { [weak self] event in
@@ -143,6 +148,18 @@ final class NotchWindowController {
             try? await Task.sleep(for: .seconds(NotchViewModel.Layout.batteryEventDuration))
             guard !Task.isCancelled else { return }
             self?.model.batteryEvent = nil
+        }
+    }
+
+    // MARK: - Sound output
+
+    private func show(_ event: OutputEvent) {
+        model.output = event
+        outputTask?.cancel()
+        outputTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(NotchViewModel.Layout.outputEventDuration))
+            guard !Task.isCancelled else { return }
+            self?.model.output = nil
         }
     }
 
