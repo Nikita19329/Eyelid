@@ -27,6 +27,11 @@ struct ClipboardSettings: View {
                 }
                 .disabled(!settings.clipboardEnabled)
 
+                Toggle(isOn: $settings.clipboardPastesAfterChoosing) {
+                    Text("Paste right away")
+                    Text("Choosing a copy also pastes it into the app you were in. Needs Accessibility access, like the volume and brightness HUD.")
+                }
+                .disabled(!settings.clipboardEnabled)
             } footer: {
                 Text("The history stays in memory and is gone when Eyelid quits, except for pinned copies, which are saved on this Mac. Copies that password managers mark as concealed are left out.")
             }

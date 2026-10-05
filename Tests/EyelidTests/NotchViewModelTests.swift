@@ -221,4 +221,17 @@ struct NotchViewModelTests {
         #expect(model.clipboardSelection == 0)
     }
 
+    @Test func choosingPastesOnlyWhenTurnedOn() throws {
+        let model = makeModel()
+        var pastes = 0
+        model.pasteIntoFrontApp = { pastes += 1 }
+        let entry = try #require(ClipboardEntry(items: [[.string: Data("hello".utf8)]]))
+
+        model.choose(entry)
+        #expect(pastes == 0)
+
+        model.settings.clipboardPastesAfterChoosing = true
+        model.choose(entry)
+        #expect(pastes == 1)
+    }
 }

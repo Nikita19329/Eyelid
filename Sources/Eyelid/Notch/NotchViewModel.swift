@@ -71,6 +71,8 @@ final class NotchViewModel {
     @ObservationIgnored let shelfDragSource = ShelfDragSource()
     /// Set by the window controller, which owns opening and closing.
     @ObservationIgnored var close: @MainActor () -> Void = {}
+    /// Presses ⌘V in the app in front. Set by the window controller, which knows when it has the keyboard back.
+    @ObservationIgnored var pasteIntoFrontApp: @MainActor () -> Void = {}
 
     init(
         geometry: NotchGeometry,
@@ -117,10 +119,13 @@ final class NotchViewModel {
         showsClipboardPreview = false
     }
 
-    /// Puts a clipboard entry back on the pasteboard, ready to paste, and closes the notch.
+    /// Puts a clipboard entry back on the pasteboard and closes the notch, then pastes it if that's turned on.
     func choose(_ entry: ClipboardEntry) {
         clipboard.copy(entry)
         close()
+        if settings.clipboardPastesAfterChoosing {
+            pasteIntoFrontApp()
+        }
     }
 
     /// Moves the clipboard selection up or down the list, staying within it.

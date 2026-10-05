@@ -63,6 +63,9 @@ final class NotchWindowController {
         model.close = { [weak self] in
             self?.close()
         }
+        model.pasteIntoFrontApp = {
+            Paster.paste()
+        }
         // Clicking another window takes the keyboard away from the clipboard history, which then goes away.
         NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) {
             [weak self] _ in
