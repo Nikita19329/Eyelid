@@ -137,11 +137,13 @@ enum AccessoryPowerSources {
     }
 }
 
-/// Headphones that just connected, shown next to the closed notch for a moment.
-struct HeadphonesEvent: Equatable, Sendable {
+/// Where sound just switched to, or the earbuds in use as they change, shown next to the closed notch for a moment.
+struct OutputEvent: Equatable, Sendable {
     var deviceID: String
     var name: String
     var icon: DeviceIcon
     /// Known for AirPods and Beats, which report it to macOS.
     var battery: HeadphonesBattery?
+    /// For outputs without a battery: their volume, so the notch shows where the sound went and how loud.
+    var volume: SystemVolume.State?
 }

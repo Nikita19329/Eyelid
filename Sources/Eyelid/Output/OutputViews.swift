@@ -1,18 +1,32 @@
 import SwiftUI
 
-/// Headphones that just connected, on both sides of the closed notch: their icon on the left and their charge on
-/// the right. When only one earbud is in use, it shows on its own side, and the charge on the other.
-struct HeadphonesActivityView: View {
-    let event: HeadphonesEvent
+/// Where sound just went, on both sides of the closed notch. Headphones that report a charge show their icon and their
+/// charge, with one earbud on its own side when the other is in the case. Other outputs look like the volume HUD: their
+/// icon and their volume.
+struct OutputActivityView: View {
+    let event: OutputEvent
+    let style: LevelStyle
     let notchSize: CGSize
 
     var body: some View {
+        if event.battery == nil, let volume = event.volume {
+            HUDView(
+                event: HUDEvent(kind: .volume, level: volume.level, isMuted: volume.isMuted, deviceIcon: event.icon),
+                style: style,
+                notchSize: notchSize
+            )
+        } else {
+            headphones
+        }
+    }
+
+    private var headphones: some View {
         let sideWidth = NotchViewModel.Layout.hudSideWidth
         let earbud = event.battery?.singleEarbud
         let symbol = earbud.flatMap(event.icon.earbudSymbolName) ?? event.icon.availableSymbolName
         let iconIsOnTheRight = earbud == .right && symbol != event.icon.availableSymbolName
 
-        HStack(spacing: 0) {
+        return HStack(spacing: 0) {
             Group {
                 if iconIsOnTheRight { level } else { icon(symbol) }
             }
@@ -48,8 +62,8 @@ struct HeadphonesActivityView: View {
         case .right: "\(event.name), right earbud"
         case nil: event.name
         }
-        guard let level = event.battery?.level else { return "\(name) connected" }
-        return "\(name) connected, \(level)%"
+        guard let level = event.battery?.level else { return "Sound on \(name)" }
+        return "Sound on \(name), \(level)%"
     }
 }
 

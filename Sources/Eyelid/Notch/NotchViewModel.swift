@@ -30,8 +30,8 @@ final class NotchViewModel {
         static let hudDuration: TimeInterval = 1.5
         /// How long a battery event stays next to the closed notch, in seconds.
         static let batteryEventDuration: TimeInterval = 3
-        /// How long connected headphones stay next to the closed notch after the last news about them, in seconds.
-        static let headphonesEventDuration: TimeInterval = 3
+        /// How long a new sound output stays next to the closed notch, in seconds.
+        static let outputEventDuration: TimeInterval = 3
         /// Transparent margin around the open notch so its shadow is not clipped.
         static let shadowPadding: CGFloat = 40
         /// How far around the closed notch dragged files open it, which makes the notch easier to hit.
@@ -50,8 +50,9 @@ final class NotchViewModel {
     var hud: HUDEvent?
     /// Shown next to the closed notch for a few seconds, in place of now playing.
     var batteryEvent: BatteryEvent?
-    /// Headphones that just connected. Shown in place of a battery event or now playing.
-    var headphones: HeadphonesEvent?
+    /// Where sound just switched to, or the earbuds in use as they change. Shown in place of a battery event or now
+    /// playing.
+    var output: OutputEvent?
     /// Whether files are being dragged anywhere on the screen, which may end on the notch.
     var isDraggingFiles = false
     /// Whether files are being dragged over the open notch, which would add them to the shelf.
@@ -169,7 +170,7 @@ final class NotchViewModel {
 
     /// Whether the closed notch grows sideways to show the HUD, a battery event, or artwork and an equalizer.
     var showsActivity: Bool {
-        hud != nil || headphones != nil || batteryEvent != nil || showsNowPlayingActivity
+        hud != nil || output != nil || batteryEvent != nil || showsNowPlayingActivity
     }
 
     var showsNowPlayingActivity: Bool {
@@ -184,7 +185,7 @@ final class NotchViewModel {
             let contentHeight = showsClipboard ? Layout.clipboardContentHeight : Layout.openContentHeight
             return CGSize(width: Layout.openWidth, height: notch.height + contentHeight)
         case .closed:
-            let sideWidth = hud != nil || headphones != nil
+            let sideWidth = hud != nil || output != nil
                 ? Layout.hudSideWidth
                 : (showsActivity ? Layout.activitySideWidth : 0)
             let extra = 2 * sideWidth

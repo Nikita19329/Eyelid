@@ -106,13 +106,20 @@ private struct VolumeAndBrightnessSettings: View {
                 SystemHUDSettings(settings: settings)
             }
 
-            if settings.replacesSystemHUD {
+            Section {
+                Toggle(isOn: $settings.outputActivityEnabled) {
+                    Text("Output changes")
+                    Text("When sound switches to other speakers or headphones, shows them next to the notch: AirPods and Beats with their charge and the earbuds in use, others with their volume.")
+                }
+            }
+
+            if settings.replacesSystemHUD || settings.outputActivityEnabled {
                 Section {
                     OutputDeviceIconSettings(settings: settings, devices: devices)
                 } header: {
                     Text("Output devices")
                 } footer: {
-                    Text("The icon the volume HUD shows for each device. macOS knows AirPods and Beats, but other Bluetooth devices all look like headphones to it.")
+                    Text("The icon the notch shows for each device. macOS knows AirPods and Beats, but other Bluetooth devices all look like headphones to it.")
                 }
             }
         }
@@ -142,11 +149,6 @@ private struct BatterySettings: View {
                 Toggle(isOn: $settings.batteryActivityEnabled) {
                     Text("Battery activity")
                     Text("Shows the charge next to the notch when you plug in or unplug the charger, and when the battery drops to 20% and 10%.")
-                }
-
-                Toggle(isOn: $settings.headphonesActivityEnabled) {
-                    Text("Headphones")
-                    Text("Shows AirPods and other Bluetooth headphones next to the notch when they connect, with the charge of AirPods and Beats.")
                 }
             }
         }

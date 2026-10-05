@@ -15,7 +15,7 @@ final class NotchWindowController {
     private var pollTask: Task<Void, Never>?
     private var batteryEventTask: Task<Void, Never>?
     private var hudTask: Task<Void, Never>?
-    private var headphonesTask: Task<Void, Never>?
+    private var outputTask: Task<Void, Never>?
     /// The drag pasteboard changes when a drag starts, which tells drags apart from other mouse moves.
     private var dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
     /// Handles the arrow keys, Return, Delete and Escape while the clipboard history has the keyboard.
@@ -24,7 +24,7 @@ final class NotchWindowController {
     init(
         nowPlaying: NowPlayingService,
         battery: BatteryService,
-        headphones: HeadphonesService,
+        output: OutputService,
         shelf: Shelf,
         clipboard: ClipboardHistory,
         clipboardShortcut: ClipboardShortcut,
@@ -56,7 +56,7 @@ final class NotchWindowController {
         battery.onEvent = { [weak self] event in
             self?.show(event)
         }
-        headphones.onEvent = { [weak self] event in
+        output.onEvent = { [weak self] event in
             self?.show(event)
         }
         hud.onEvent = { [weak self] event in
@@ -151,16 +151,15 @@ final class NotchWindowController {
         }
     }
 
-    // MARK: - Headphones
+    // MARK: - Sound output
 
-    private func show(_ event: HeadphonesEvent) {
-        model.headphones = event
-        // The battery arrives a moment after the connection, and gets its own few seconds.
-        headphonesTask?.cancel()
-        headphonesTask = Task { [weak self] in
-            try? await Task.sleep(for: .seconds(NotchViewModel.Layout.headphonesEventDuration))
+    private func show(_ event: OutputEvent) {
+        model.output = event
+        outputTask?.cancel()
+        outputTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(NotchViewModel.Layout.outputEventDuration))
             guard !Task.isCancelled else { return }
-            self?.model.headphones = nil
+            self?.model.output = nil
         }
     }
 

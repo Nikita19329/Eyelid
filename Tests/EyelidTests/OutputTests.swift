@@ -3,7 +3,7 @@ import IOKit.ps
 import Testing
 @testable import Eyelid
 
-@Suite("Headphones")
+@Suite("Sound output")
 struct HeadphonesTests {
     /// What macOS reports for AirPods Pro with the left earbud in an ear and the right one in the case,
     /// trimmed to the keys Eyelid reads.
@@ -71,17 +71,6 @@ struct HeadphonesTests {
         #expect(battery([]) == nil)
     }
 
-    @Test func onlyNewBluetoothOutputsCountAsConnecting() {
-        func device(_ id: String, _ transport: OutputDevice.Transport) -> OutputDevice {
-            OutputDevice(id: id, name: id, transport: transport, isHeadphoneJack: false, modelUID: nil)
-        }
-        let devices = [device("speakers", .builtIn), device("airpods", .bluetooth), device("beats", .bluetooth)]
-
-        let new = HeadphonesService.newBluetoothDevices(in: devices, known: ["beats"])
-
-        #expect(new.map(\.id) == ["airpods"])
-    }
-
     @Test func earbudsHaveSymbolsForEachSide() {
         #expect(DeviceIcon.airpodsPro.earbudSymbolName(.left) == "airpodpro.left")
         #expect(DeviceIcon.airpods4.earbudSymbolName(.right) == "airpod.gen3.right")
@@ -102,12 +91,12 @@ struct HeadphonesTests {
 
     @Test func earbudsGoingInOrOutShowAgain() {
         // The second earbud joins, or one of two leaves.
-        #expect(HeadphonesService.isWorthShowing(from: [.left], to: [.left, .right]))
-        #expect(HeadphonesService.isWorthShowing(from: [.left, .right], to: [.right]))
-        #expect(HeadphonesService.isWorthShowing(from: [], to: [.left]))
+        #expect(OutputService.isWorthShowing(from: [.left], to: [.left, .right]))
+        #expect(OutputService.isWorthShowing(from: [.left, .right], to: [.right]))
+        #expect(OutputService.isWorthShowing(from: [], to: [.left]))
         // Nothing changed, or both went back in the case, which disconnects them anyway.
-        #expect(!HeadphonesService.isWorthShowing(from: [.left], to: [.left]))
-        #expect(!HeadphonesService.isWorthShowing(from: [.left, .right], to: []))
+        #expect(!OutputService.isWorthShowing(from: [.left], to: [.left]))
+        #expect(!OutputService.isWorthShowing(from: [.left, .right], to: []))
     }
 
     @Test func volumeShowsTheEarbudInUse() {

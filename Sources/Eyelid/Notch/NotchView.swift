@@ -18,7 +18,7 @@ struct NotchView: View {
             .animation(animation, value: model.state)
             .animation(animation, value: model.showsActivity)
             .animation(animation, value: model.batteryEvent)
-            .animation(animation, value: model.headphones == nil)
+            .animation(animation, value: model.output == nil)
             .animation(animation, value: model.hud == nil)
             .environment(\.colorScheme, .dark)
     }
@@ -33,8 +33,8 @@ struct NotchView: View {
             if let hud = model.hud {
                 HUDView(event: hud, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
                     .transition(.opacity)
-            } else if let headphones = model.headphones {
-                HeadphonesActivityView(event: headphones, notchSize: model.geometry.notchSize)
+            } else if let output = model.output {
+                OutputActivityView(event: output, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
                     .transition(.opacity)
             } else if let event = model.batteryEvent {
                 BatteryActivityView(event: event, notchSize: model.geometry.notchSize)
