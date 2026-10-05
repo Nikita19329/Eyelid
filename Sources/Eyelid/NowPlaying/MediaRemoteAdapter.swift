@@ -1,0 +1,89 @@
+import Foundation
+import os
+
+private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "MediaRemoteAdapter")
+
+/// Talks to [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter).
+///
+/// Since macOS 15.4, MediaRemote (the private framework behind the Now Playing widget) only answers
+/// entitled Apple processes. The adapter loads a small framework into Apple's own `/usr/bin/perl`,
+/// which is still entitled, and prints now playing updates as JSON lines.
+struct MediaRemoteAdapter: Sendable {
+    /// MediaRemote command IDs (`MRCommand`) accepted by `send`.
+    enum Command: Int, Sendable {
+        case play = 0
+        case pause = 1
+        case togglePlayPause = 2
+        case nextTrack = 4
+        case previousTrack = 5
+    }
+
+    let script: URL
+    let framework: URL
+
+    /// Finds the adapter inside the app bundle, or in the repository when started with `swift run`.
+    static func locate() -> MediaRemoteAdapter? {
+        var candidates: [MediaRemoteAdapter] = []
+
+        if let resources = Bundle.main.resourceURL, let frameworks = Bundle.main.privateFrameworksURL {
+            candidates.append(MediaRemoteAdapter(
+                script: resources.appending(path: "mediaremote-adapter.pl"),
+                framework: frameworks.appending(path: "MediaRemoteAdapter.framework")
+            ))
+        }
+
+        // `swift run` from the repository root, once `make app` has built the framework.
+        let root = URL(filePath: FileManager.default.currentDirectoryPath)
+        candidates.append(MediaRemoteAdapter(
+            script: root.appending(path: "Vendor/mediaremote-adapter/bin/mediaremote-adapter.pl"),
+            framework: root.appending(path: ".build/adapter/MediaRemoteAdapter.framework")
+        ))
+
+        let fileManager = FileManager.default
+        return candidates.first {
+            fileManager.fileExists(atPath: $0.script.path) && fileManager.fileExists(atPath: $0.framework.path)
+        }
+    }
+
+    func makeProcess(arguments: [String]) -> Process {
+        let process = Process()
+        process.executableURL = URL(filePath: "/usr/bin/perl")
+        process.arguments = [script.path, framework.path] + arguments
+        return process
+    }
+
+    func send(_ command: Command) {
+        Task.detached(priority: .userInitiated) {
+            let process = makeProcess(arguments: ["send", String(command.rawValue)])
+            process.standardOutput = FileHandle.nullDevice
+            process.standardError = FileHandle.nullDevice
+            do {
+                try process.run()
+                process.waitUntilExit()
+            } catch {
+                logger.error("Failed to send command \(command.rawValue): \(error.localizedDescription)")
+            }
+        }
+    }
+}
+
+/// One line of `stream --no-diff --micros` output.
+struct AdapterStreamMessage: Decodable {
+    struct Payload: Decodable {
+        let title: String?
+        let artist: String?
+        let album: String?
+        let bundleIdentifier: String?
+        let parentApplicationBundleIdentifier: String?
+        let playing: Bool?
+        let playbackRate: Double?
+        let durationMicros: Double?
+        let elapsedTimeMicros: Double?
+        let timestampEpochMicros: Double?
+        /// Base64-encoded image.
+        let artworkData: String?
+    }
+
+    let type: String
+    let payload: Payload
+}
