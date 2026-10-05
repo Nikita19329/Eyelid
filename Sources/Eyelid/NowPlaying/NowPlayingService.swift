@@ -21,8 +21,8 @@ final class NowPlayingService {
     /// Yandex Music sends none, the old one, none again, and the new one about 0.65 s after the track changed. For this
     /// long the notch keeps the previous artwork rather than blinking through those.
     @ObservationIgnored let artworkGrace: TimeInterval
-    /// Whether the artwork of a new track is on its way. The title under the notch stays hidden until then, so it shows
-    /// in the colors of the new artwork from the start.
+    /// Whether the artwork of a new track is on its way. The title under the notch stays white until then, rather than
+    /// taking the previous track's colors.
     private(set) var isAwaitingArtwork = false
     @ObservationIgnored private var artworkWait: Task<Void, Never>?
     /// The artwork shown when the track changed. Getting it again doesn't end the wait.

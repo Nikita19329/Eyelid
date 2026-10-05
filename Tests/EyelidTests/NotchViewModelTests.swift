@@ -85,6 +85,11 @@ struct NotchViewModelTests {
             height: 32 + NotchViewModel.Layout.trackTitleHeight
         ))
         #expect(model.lowerLidDepth == NotchViewModel.Layout.lowerLidDepth)
+        #expect(model.lidFadeHeight == NotchViewModel.Layout.lidFadeHeight)
+        #expect(model.bottomRadius == NotchViewModel.Layout.lidBottomRadius)
+        // The text sits above the fade.
+        #expect(NotchViewModel.Layout.trackTitleTextHeight + NotchViewModel.Layout.lidFadeHeight
+            <= NotchViewModel.Layout.trackTitleHeight)
         #expect(model.trackTitleWidth == 185 + 2 * NotchViewModel.Layout.activitySideWidth - 2 * NotchViewModel.Layout.trackTitleInset)
     }
 
@@ -96,6 +101,8 @@ struct NotchViewModelTests {
         #expect(!model.isShowingTrackTitle)
         #expect(model.bodySize.height == 32)
         #expect(model.lowerLidDepth == 0)
+        #expect(model.lidFadeHeight == 0)
+        #expect(model.bottomRadius == NotchViewModel.Layout.closedBottomRadius)
 
         model.hud = nil
         model.state = .open

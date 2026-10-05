@@ -17,6 +17,9 @@ struct NotchView: View {
                 bottomCornerRadius: model.bottomRadius,
                 lowerLidDepth: model.lowerLidDepth
             ))
+            .mask(alignment: .top) {
+                LidFade(fadeHeight: model.lidFadeHeight)
+            }
             .shadow(color: .black.opacity(model.state == .open ? 0.45 : 0), radius: 14, y: 6)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             .animation(animation, value: model.state)
@@ -45,11 +48,11 @@ struct NotchView: View {
                 if model.isShowingTrackTitle, let title = model.trackTitle {
                     TrackTitleView(
                         title: title,
-                        color: model.nowPlaying.track?.artworkColor,
-                        width: model.trackTitleWidth,
-                        isReady: !model.nowPlaying.isAwaitingArtwork
+                        // White until the new track's artwork is here, then its colors.
+                        color: model.nowPlaying.isAwaitingArtwork ? nil : model.nowPlaying.track?.artworkColor,
+                        width: model.trackTitleWidth
                     )
-                        .frame(height: NotchViewModel.Layout.trackTitleHeight - NotchViewModel.Layout.lowerLidDepth)
+                        .frame(height: NotchViewModel.Layout.trackTitleTextHeight)
                         .id(title.id)
                         .transition(.opacity.combined(with: .offset(y: -8)))
                 }
@@ -72,6 +75,29 @@ struct NotchView: View {
         } else if model.showsNowPlayingActivity, let track = model.nowPlaying.track {
             ClosedActivityView(track: track, notchSize: model.geometry.notchSize)
                 .transition(.opacity)
+        }
+    }
+}
+
+/// Solid, except for the bottom of the lower lid, which fades out like smudged mascara rather than ending in an edge.
+private struct LidFade: View {
+    let fadeHeight: CGFloat
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+            // Eased rather than linear, so it thins out softly instead of ending in a band.
+            LinearGradient(
+                stops: [
+                    .init(color: .black, location: 0),
+                    .init(color: .black.opacity(0.7), location: 0.35),
+                    .init(color: .black.opacity(0.25), location: 0.7),
+                    .init(color: .clear, location: 1),
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: fadeHeight)
         }
     }
 }

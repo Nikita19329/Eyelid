@@ -172,9 +172,7 @@ final class NotchWindowController {
     func show(_ title: TrackTitle) {
         guard model.state == .closed else { return }
         model.trackTitle = title
-        // The text shows once the artwork is here, so it gets its full time after that.
-        let wait = model.nowPlaying.isAwaitingArtwork ? model.nowPlaying.artworkGrace : 0
-        let duration = wait + title.duration(in: model.trackTitleWidth)
+        let duration = title.duration(in: model.trackTitleWidth)
         trackTitleTask?.cancel()
         trackTitleTask = Task { [weak self] in
             try? await Task.sleep(for: .seconds(duration))

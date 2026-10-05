@@ -33,7 +33,13 @@ final class NotchViewModel {
         /// How long a new sound output stays next to the closed notch, in seconds.
         static let outputEventDuration: TimeInterval = 3
         /// How far the closed notch drops below the hardware notch to show the track title, like a lower eyelid.
-        static let trackTitleHeight: CGFloat = 24
+        static let trackTitleHeight: CGFloat = 36
+        /// The line of text at the top of that, on solid black.
+        static let trackTitleTextHeight: CGFloat = 19
+        /// Below the text, the lid fades out like smudged mascara over this height.
+        static let lidFadeHeight: CGFloat = 17
+        /// Rounder bottom corners for the lid, which soften as it fades.
+        static let lidBottomRadius: CGFloat = 18
         /// How much the bottom edge curves while it shows the track title: the middle hangs this much lower than the
         /// corners.
         static let lowerLidDepth: CGFloat = 5
@@ -196,6 +202,11 @@ final class NotchViewModel {
         isShowingTrackTitle ? Layout.lowerLidDepth : 0
     }
 
+    /// How far up from the bottom the lid fades out. Nothing fades otherwise.
+    var lidFadeHeight: CGFloat {
+        isShowingTrackTitle ? Layout.lidFadeHeight : 0
+    }
+
     /// Room for the track title in one line. Longer titles scroll.
     var trackTitleWidth: CGFloat {
         geometry.notchSize.width + 2 * Layout.activitySideWidth - 2 * Layout.trackTitleInset
@@ -223,7 +234,10 @@ final class NotchViewModel {
     }
 
     var bottomRadius: CGFloat {
-        state == .open ? Layout.openBottomRadius : Layout.closedBottomRadius
+        if state == .open {
+            return Layout.openBottomRadius
+        }
+        return isShowingTrackTitle ? Layout.lidBottomRadius : Layout.closedBottomRadius
     }
 
     /// The panel is sized once for the tallest open state and never resized, which keeps animations smooth.
