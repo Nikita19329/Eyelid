@@ -66,7 +66,9 @@ if [[ -z "${CODESIGN_IDENTITY:-}" ]]; then
 fi
 SIGN_IDENTITY="${CODESIGN_IDENTITY:--}"
 echo "==> Signing (${SIGN_IDENTITY/#-/ad hoc})"
-codesign --force --sign "$SIGN_IDENTITY" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
-codesign --force --sign "$SIGN_IDENTITY" "$APP"
+# The hardened runtime protects the process that holds Accessibility access. Signed with a real
+# identity, it also only lets Apple's libraries and the identity's own into the process.
+codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP/Contents/Frameworks/MediaRemoteAdapter.framework"
+codesign --force --options runtime --sign "$SIGN_IDENTITY" "$APP"
 
 echo "==> Done: $APP"
