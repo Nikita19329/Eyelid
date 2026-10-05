@@ -102,11 +102,7 @@ The volume HUD picks the device icon from what CoreAudio reports about the outpu
 
 Since Eyelid is signed ad hoc, macOS ties the Accessibility permission to one exact build. After an update or a rebuild, remove Eyelid from **System Settings → Privacy & Security → Accessibility** and allow it again. Eyelid shows the system prompt for it on launch.
 
-While developing, sign with a real identity to keep the permission across rebuilds. Signing in with an Apple ID in **Xcode → Settings → Accounts** creates a free "Apple Development" certificate:
-
-```sh
-CODESIGN_IDENTITY="Apple Development" make run
-```
+While developing, a real signing identity keeps the permission across rebuilds. `make` uses the first Apple Development certificate in your keychain and falls back to ad hoc without one. To get a free one, sign in with an Apple ID in **Xcode → Settings → Accounts**, then choose **Manage Certificates… → + → Apple Development**. `CODESIGN_IDENTITY=-` forces ad hoc, and `CODESIGN_IDENTITY="…"` picks another identity.
 
 ## Project layout
 
