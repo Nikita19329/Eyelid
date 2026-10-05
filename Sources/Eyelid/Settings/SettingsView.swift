@@ -52,7 +52,11 @@ struct SettingsView: View {
         delay == 0 ? "Instantly" : "After \(delay.formatted()) s"
     }
 
+    /// "1.2.3 (45)": builds made after the same tag differ only in the build number.
     private static var version: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "development build"
+        guard let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String,
+              let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String
+        else { return "development build" }
+        return "\(version) (\(build))"
     }
 }

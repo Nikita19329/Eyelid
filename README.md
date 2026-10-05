@@ -18,7 +18,21 @@ Eyelid sits on top of the notch and blends in with it. Hover over the notch and 
 - **Settings.** Choose how long the pointer rests on the notch before it opens, turn off haptics or the live activity, pick the display, and launch Eyelid at login.
 - **Macs without a notch** get a virtual one at the top of the main display.
 
-## Requirements
+## Install
+
+Download the latest `Eyelid-*.zip` from [Releases](https://github.com/Nikita19329/Eyelid/releases/latest), unzip it, and move `Eyelid.app` to Applications. Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs.
+
+Eyelid isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Eyelid.app
+```
+
+The eye icon in the menu bar opens Settings and quits Eyelid.
+
+## Build from source
+
+### Requirements
 
 - macOS 14 Sonoma or later (developed on macOS 27)
 - Xcode
@@ -26,7 +40,7 @@ Eyelid sits on top of the notch and blends in with it. Hover over the notch and 
 
 The Command Line Tools alone are not enough: on the macOS 27 SDK, SwiftUI's `@State` is a macro whose compiler plugin ships only with Xcode.
 
-## Build and run
+### Build and run
 
 ```sh
 git clone --recurse-submodules https://github.com/Nikita19329/Eyelid.git
@@ -44,13 +58,18 @@ make run
 
 After `make app` has run once, `swift run` from the repository root works too, which is handy for quick iterations. To work in Xcode, open `Package.swift`.
 
-The eye icon in the menu bar opens Settings and quits Eyelid.
+The version comes from git: builds show the latest `vX.Y.Z` tag and the commit count as the build number. `UNIVERSAL=1 make app` builds for both Apple silicon and Intel.
 
-The app is signed ad hoc. If you copy a build to another Mac, Gatekeeper will refuse to open it until you allow it in **System Settings → Privacy & Security**, or remove the quarantine flag:
+## Releasing
+
+Push a version tag:
 
 ```sh
-xattr -dr com.apple.quarantine /Applications/Eyelid.app
+git tag -a v0.2.0 -m "Eyelid 0.2.0"
+git push origin v0.2.0
 ```
+
+The Release workflow builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version and the signature. Then it publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
 
 ## How it works
 
@@ -80,7 +99,8 @@ Vendor/         mediaremote-adapter (git submodule)
 - [ ] Calendar: upcoming events
 - [ ] File shelf: drop files onto the notch
 - [ ] Notches on several displays at once
-- [ ] Universal (arm64 + x86_64) release builds, Sparkle updates, Homebrew cask
+- [x] Universal (arm64 + x86_64) release builds from version tags
+- [ ] Sparkle updates, Homebrew cask, notarization
 
 ## Contributing
 
