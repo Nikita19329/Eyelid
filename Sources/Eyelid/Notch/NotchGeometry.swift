@@ -9,21 +9,32 @@ struct NotchGeometry: Equatable {
     /// Frame of the screen the notch belongs to.
     let screenFrame: CGRect
 
+    init(notchSize: CGSize, notchMidX: CGFloat, screenFrame: CGRect) {
+        self.notchSize = notchSize
+        self.notchMidX = notchMidX
+        self.screenFrame = screenFrame
+    }
+
     init(screen: NSScreen) {
         let frame = screen.frame
-        screenFrame = frame
 
         if screen.safeAreaInsets.top > 0,
            let left = screen.auxiliaryTopLeftArea,
            let right = screen.auxiliaryTopRightArea {
             // The notch is whatever the two auxiliary areas next to it leave uncovered.
             let width = frame.width - left.width - right.width
-            notchSize = CGSize(width: width, height: screen.safeAreaInsets.top)
-            notchMidX = frame.minX + left.width + width / 2
+            self.init(
+                notchSize: CGSize(width: width, height: screen.safeAreaInsets.top),
+                notchMidX: frame.minX + left.width + width / 2,
+                screenFrame: frame
+            )
         } else {
             let menuBarHeight = frame.maxY - screen.visibleFrame.maxY
-            notchSize = CGSize(width: 200, height: max(menuBarHeight, 24))
-            notchMidX = frame.midX
+            self.init(
+                notchSize: CGSize(width: 200, height: max(menuBarHeight, 24)),
+                notchMidX: frame.midX,
+                screenFrame: frame
+            )
         }
     }
 
