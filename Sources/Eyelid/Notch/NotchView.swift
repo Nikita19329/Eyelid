@@ -18,6 +18,7 @@ struct NotchView: View {
             .animation(animation, value: model.state)
             .animation(animation, value: model.showsActivity)
             .animation(animation, value: model.batteryEvent)
+            .animation(animation, value: model.hud == nil)
             .environment(\.colorScheme, .dark)
     }
 
@@ -28,7 +29,10 @@ struct NotchView: View {
             OpenNotchView(model: model)
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
         case .closed:
-            if let event = model.batteryEvent {
+            if let hud = model.hud {
+                HUDView(event: hud, notchSize: model.geometry.notchSize)
+                    .transition(.opacity)
+            } else if let event = model.batteryEvent {
                 BatteryActivityView(event: event, notchSize: model.geometry.notchSize)
                     .transition(.opacity)
             } else if model.showsNowPlayingActivity, let track = model.nowPlaying.track {

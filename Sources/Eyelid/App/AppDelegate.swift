@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
     private let battery = BatteryService()
+    private let hud = HUDService()
     private var notchController: NotchWindowController?
     private var signalSources: [DispatchSourceSignal] = []
 
@@ -15,11 +16,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         nowPlaying.start()
         battery.start()
-        notchController = NotchWindowController(nowPlaying: nowPlaying, battery: battery, settings: settings)
+        notchController = NotchWindowController(nowPlaying: nowPlaying, battery: battery, hud: hud, settings: settings)
+        followHUDSetting()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         nowPlaying.stop()
+    }
+
+    /// Turns key handling on and off as the setting changes.
+    private func followHUDSetting() {
+        withObservationTracking {
+            hud.setEnabled(settings.replacesSystemHUD)
+        } onChange: { [weak self] in
+            // `onChange` runs before the new value is stored, so apply it on the next turn of the main actor.
+            Task { @MainActor in
+                self?.followHUDSetting()
+            }
+        }
     }
 
     /// `kill`, `pkill` and Ctrl-C skip `applicationWillTerminate`, which would leave the adapter process running.

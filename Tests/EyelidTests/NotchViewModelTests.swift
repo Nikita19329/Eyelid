@@ -62,6 +62,16 @@ struct NotchViewModelTests {
         #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.activitySideWidth)
     }
 
+    @Test func hudTakesPrecedenceAndNeedsMoreRoom() {
+        let model = makeModel()
+        model.batteryEvent = .unplugged(BatteryState(level: 50, isPluggedIn: false, isCharging: false))
+
+        model.hud = HUDEvent(kind: .volume, level: 0.5)
+
+        #expect(model.showsActivity)
+        #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.hudSideWidth)
+    }
+
     @Test func pointerOnTheNotchOpensIt() {
         let model = makeModel()
 
