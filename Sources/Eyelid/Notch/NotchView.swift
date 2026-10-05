@@ -28,6 +28,8 @@ struct NotchView: View {
             .animation(animation, value: model.output == nil)
             .animation(animation, value: model.hud == nil)
             .animation(animation, value: model.isShowingTrackTitle)
+            // The next title replaces the last one in place, title and artist together.
+            .animation(.easeInOut(duration: 0.25), value: model.trackTitle?.id)
             .environment(\.colorScheme, .dark)
     }
 
@@ -48,8 +50,8 @@ struct NotchView: View {
                 if model.isShowingTrackTitle, let title = model.trackTitle {
                     TrackTitleView(
                         title: title,
-                        // White until the new track's artwork is here, then its colors.
-                        color: model.nowPlaying.isAwaitingArtwork ? nil : model.nowPlaying.track?.artworkColor,
+                        // The previous track's colors until the new artwork is here, then a blend into its own.
+                        color: model.nowPlaying.track?.artworkColor,
                         width: model.trackTitleWidth
                     )
                         .frame(height: NotchViewModel.Layout.trackTitleTextHeight)

@@ -28,8 +28,19 @@ struct NowPlayingArtworkWaitTests {
         return data as Data
     }
 
-    private func snapshot(_ title: String, playing: Bool = true, artwork: Data? = nil) throws -> NowPlayingSnapshot {
-        let json = #"{"title":"\#(title)","artist":"Artist","playing":\#(playing)}"#
+    /// Each title has its own artist and length unless they're given, as tracks usually do.
+    private func snapshot(
+        _ title: String,
+        artist: String? = nil,
+        album: String = "",
+        duration: Double? = nil,
+        elapsed: Double = 0,
+        playing: Bool = true,
+        artwork: Data? = nil
+    ) throws -> NowPlayingSnapshot {
+        let artist = artist ?? "Artist of \(title)"
+        let micros = (duration ?? Double(100 + title.count)) * 1_000_000
+        let json = #"{"title":"\#(title)","artist":"\#(artist)","album":"\#(album)","playing":\#(playing),"durationMicros":\#(micros),"elapsedTimeMicros":\#(elapsed * 1_000_000)}"#
         let payload = try JSONDecoder().decode(AdapterStreamMessage.Payload.self, from: Data(json.utf8))
         var snapshot = try #require(NowPlayingSnapshot(payload: payload))
         snapshot.artworkData = artwork
@@ -38,11 +49,61 @@ struct NowPlayingArtworkWaitTests {
     }
 
     private func service(_ starts: Starts) -> NowPlayingService {
-        let service = NowPlayingService(artworkGrace: 0.06)
+        let service = NowPlayingService(artworkGrace: 0.06, earlyTitleWait: 0.06)
         service.onPlaybackStart = { track in
             starts.titles.append(track.title)
         }
         return service
+    }
+
+    /// What Yandex Music sends as the track changes: the new title with the rest of the previous track, twice, then
+    /// its artist, album and length, then its artwork.
+    @Test func titleAndArtistChangeTogether() throws {
+        let starts = Starts()
+        let service = service(starts)
+        let red = try png(red: 0.9, green: 0.1, blue: 0.1)
+        let blue = try png(red: 0.1, green: 0.2, blue: 0.9)
+        service.apply(try snapshot("One", artist: "Би-2", album: "Иномарки", duration: 204, elapsed: 3, artwork: red))
+
+        service.apply(try snapshot("Two", artist: "Би-2", album: "Иномарки", duration: 204, elapsed: 3))
+        service.apply(try snapshot("Two", artist: "Би-2", album: "Иномарки", duration: 204, elapsed: 3, artwork: red))
+        // Still the previous track: the new title doesn't show with the old artist.
+        #expect(service.track?.title == "One")
+        #expect(starts.titles == ["One"])
+
+        service.apply(try snapshot("Two", artist: "Любэ", album: "Том 2", duration: 110, elapsed: 0))
+        #expect(service.track?.title == "Two")
+        #expect(service.track?.artist == "Любэ")
+        #expect(starts.titles == ["One", "Two"])
+        // The previous colors stay until the new artwork comes.
+        #expect((service.track?.artworkColor?.red ?? 0) > 0.8)
+
+        service.apply(try snapshot("Two", artist: "Любэ", album: "Том 2", duration: 110, elapsed: 0, artwork: blue))
+        #expect((service.track?.artworkColor?.blue ?? 0) > 0.8)
+    }
+
+    @Test func earlyTitleShowsOnItsOwnIfTheRestNeverComes() async throws {
+        let starts = Starts()
+        let service = service(starts)
+        service.apply(try snapshot("One", artist: "Band", album: "Album", duration: 200, elapsed: 0))
+
+        service.apply(try snapshot("Two", artist: "Band", album: "Album", duration: 200, elapsed: 0))
+        try await Task.sleep(for: .milliseconds(250))
+
+        #expect(service.track?.title == "Two")
+        #expect(starts.titles == ["One", "Two"])
+    }
+
+    @Test func tellsEarlyTitlesFromNewTracks() throws {
+        let service = service(Starts())
+        service.apply(try snapshot("One", artist: "Band", album: "Album", duration: 200, elapsed: 42))
+        let track = try #require(service.track)
+
+        #expect(NowPlayingService.isEarlyTitle(try snapshot("Two", artist: "Band", album: "Album", duration: 200, elapsed: 42), after: track))
+        // The next track of the album starts from the beginning, and is rarely just as long.
+        #expect(!NowPlayingService.isEarlyTitle(try snapshot("Two", artist: "Band", album: "Album", duration: 180, elapsed: 0), after: track))
+        #expect(!NowPlayingService.isEarlyTitle(try snapshot("Two", artist: "Other", album: "Album", duration: 200, elapsed: 42), after: track))
+        #expect(!NowPlayingService.isEarlyTitle(try snapshot("One", artist: "Band", album: "Album", duration: 200, elapsed: 42), after: track))
     }
 
     /// What Yandex Music sends as the track changes: no artwork, the previous track's, none again, then its own.

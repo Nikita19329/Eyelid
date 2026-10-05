@@ -39,7 +39,7 @@ struct TrackTitleView: View {
                     .frame(width: width)
             }
         }
-        // White flows into the artwork's colors as it arrives.
+        // The previous track's colors flow into the new artwork's as it arrives.
         .animation(.easeInOut(duration: 0.4), value: color)
         .onAppear {
             shownAt = .now

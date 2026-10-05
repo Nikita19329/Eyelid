@@ -21,8 +21,7 @@ final class NowPlayingService {
     /// Yandex Music sends none, the old one, none again, and the new one about 0.65 s after the track changed. For this
     /// long the notch keeps the previous artwork rather than blinking through those.
     @ObservationIgnored let artworkGrace: TimeInterval
-    /// Whether the artwork of a new track is on its way. The title under the notch stays white until then, rather than
-    /// taking the previous track's colors.
+    /// Whether the artwork of a new track is on its way. Until then the previous artwork, and its colors, stay.
     private(set) var isAwaitingArtwork = false
     @ObservationIgnored private var artworkWait: Task<Void, Never>?
     /// The artwork shown when the track changed. Getting it again doesn't end the wait.
@@ -30,8 +29,16 @@ final class NowPlayingService {
     /// What the latest update brought, which stays when the wait runs out.
     @ObservationIgnored private var latestArtwork: (data: Data?, artwork: Artwork?) = (nil, nil)
 
-    init(artworkGrace: TimeInterval = 1) {
+    /// Yandex Music first sends the new title with everything else still from the previous track, and the rest about
+    /// 0.54 s later. Updates like that wait this long at most for the rest, so the title and artist change together.
+    @ObservationIgnored let earlyTitleWait: TimeInterval
+    /// The latest of those updates, applied if the rest doesn't come.
+    @ObservationIgnored private var earlyTitle: NowPlayingSnapshot?
+    @ObservationIgnored private var earlyTitleTask: Task<Void, Never>?
+
+    init(artworkGrace: TimeInterval = 1, earlyTitleWait: TimeInterval = 1) {
         self.artworkGrace = artworkGrace
+        self.earlyTitleWait = earlyTitleWait
     }
 
     func start() {
@@ -134,9 +141,18 @@ final class NowPlayingService {
             track = nil
             artworkData = nil
             endArtworkWait()
+            dropEarlyTitle()
             return
         }
+        if let track, Self.isEarlyTitle(snapshot, after: track) {
+            holdEarlyTitle(snapshot)
+            return
+        }
+        dropEarlyTitle()
+        update(with: snapshot)
+    }
 
+    private func update(with snapshot: NowPlayingSnapshot) {
         let previous = track
         let isNewItem = previous.map {
             $0.title != snapshot.title || $0.artist != snapshot.artist || $0.album != snapshot.album
@@ -181,6 +197,38 @@ final class NowPlayingService {
         if TrackTitle.isWorthShowing(from: previous, to: current) {
             onPlaybackStart?(current)
         }
+    }
+
+    // MARK: - Early titles
+
+    /// A new title with the artist, album, duration and position of the previous track, which no new track has.
+    nonisolated static func isEarlyTitle(_ snapshot: NowPlayingSnapshot, after track: NowPlayingTrack) -> Bool {
+        snapshot.title != track.title
+            && snapshot.artist == track.artist
+            && snapshot.album == track.album
+            && snapshot.duration == track.duration
+            && snapshot.elapsedTime == track.elapsedTime
+    }
+
+    private func holdEarlyTitle(_ snapshot: NowPlayingSnapshot) {
+        earlyTitle = snapshot
+        guard earlyTitleTask == nil else { return }
+        earlyTitleTask = Task { [weak self, earlyTitleWait] in
+            try? await Task.sleep(for: .seconds(earlyTitleWait))
+            guard !Task.isCancelled, let self else { return }
+            // The rest didn't come: perhaps the next track of an album, of the same length. Show it as it is.
+            let held = earlyTitle
+            dropEarlyTitle()
+            if let held {
+                update(with: held)
+            }
+        }
+    }
+
+    private func dropEarlyTitle() {
+        earlyTitleTask?.cancel()
+        earlyTitleTask = nil
+        earlyTitle = nil
     }
 
     /// Shows this artwork from now on.
