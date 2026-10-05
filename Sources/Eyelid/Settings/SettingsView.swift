@@ -5,6 +5,10 @@ struct SettingsView: View {
 
     var body: some View {
         Form {
+            Section("General") {
+                LaunchAtLoginToggle()
+            }
+
             Section("Notch") {
                 Picker("Open on hover", selection: $settings.openDelay) {
                     ForEach(AppSettings.openDelayOptions, id: \.self) { delay in
