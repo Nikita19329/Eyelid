@@ -15,8 +15,11 @@ final class HeadphonesService {
     private var listener: AudioObjectPropertyListenerBlock?
     private var batteryTask: Task<Void, Never>?
 
-    /// AirPods report their charge a moment after connecting. Ask again until they have.
-    private static let batteryDelays: [Duration] = [.seconds(1.5), .seconds(2.5)]
+    /// AirPods report their charge a moment after connecting, if macOS doesn't know it already. Until they do, the
+    /// notch waits and looks again, so the icon and the charge show up together.
+    private static let batteryPollInterval: Duration = .milliseconds(200)
+    /// Apple headphones that haven't reported a charge by then show up with their icon alone.
+    private static let batteryWait: Duration = .seconds(3)
 
     init(settings: AppSettings) {
         self.settings = settings
@@ -54,41 +57,28 @@ final class HeadphonesService {
         logger.debug("Connected: \(device.name, privacy: .public)")
 
         var event = HeadphonesEvent(deviceID: device.id, name: device.name, icon: settings.icon(for: device))
-        onEvent?(event)
-
         batteryTask?.cancel()
-        batteryTask = Task { [weak self] in
-            for delay in Self.batteryDelays {
-                try? await Task.sleep(for: delay)
-                guard !Task.isCancelled else { return }
-                if let battery = await Self.readBattery(of: device.name) {
-                    event.battery = battery
-                    self?.onEvent?(event)
-                    return
-                }
-            }
-        }
-    }
 
-    /// Asks `system_profiler`, which knows the charge of AirPods and Beats without the Bluetooth permission.
-    nonisolated private static func readBattery(of deviceName: String) async -> HeadphonesBattery? {
-        await Task.detached(priority: .utility) {
-            let process = Process()
-            process.executableURL = URL(filePath: "/usr/sbin/system_profiler")
-            process.arguments = ["SPBluetoothDataType", "-json"]
-            process.environment = ["PATH": "/usr/bin:/bin"]
-            let output = Pipe()
-            process.standardOutput = output
-            process.standardError = FileHandle.nullDevice
-            do {
-                try process.run()
-            } catch {
-                logger.error("Could not run system_profiler: \(error.localizedDescription, privacy: .public)")
-                return nil
+        // Only Apple and Beats headphones report their charge, so others show up right away.
+        guard let productID = device.appleProductID else {
+            onEvent?(event)
+            return
+        }
+
+        batteryTask = Task { [weak self] in
+            let deadline = ContinuousClock.now + Self.batteryWait
+            while ContinuousClock.now < deadline, !Task.isCancelled {
+                event.battery = HeadphonesBattery(
+                    powerSources: AccessoryPowerSources.descriptions(),
+                    deviceName: device.name,
+                    productID: productID
+                )
+                if event.battery?.isInUse == true { break }
+                try? await Task.sleep(for: Self.batteryPollInterval)
             }
-            let data = output.fileHandleForReading.readDataToEndOfFile()
-            process.waitUntilExit()
-            return HeadphonesBattery(systemProfilerJSON: data, deviceName: deviceName)
-        }.value
+            guard !Task.isCancelled else { return }
+            logger.debug("Battery: \(String(describing: event.battery), privacy: .public)")
+            self?.onEvent?(event)
+        }
     }
 }

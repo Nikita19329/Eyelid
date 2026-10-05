@@ -1,44 +1,113 @@
 import Foundation
+import IOKit.ps
 
 /// The charge of wireless headphones, in percent: each earbud and the case for AirPods, one level for
 /// over-ear headphones. Missing parts are nil.
 struct HeadphonesBattery: Equatable, Sendable {
+    enum Earbud: Equatable, Sendable {
+        case left
+        case right
+    }
+
     var left: Int?
     var right: Int?
     var `case`: Int?
     var main: Int?
+    /// An earbud in the case runs on the case's power, which is how macOS tells it apart from one in use.
+    var leftIsInCase = false
+    var rightIsInCase = false
 
-    /// The level to show first: the emptier earbud, since that's the one that runs out.
+    /// The level to show: the earbud in use, or the emptier one, since that's the one that runs out.
     var level: Int? {
-        [left, right].compactMap(\.self).min() ?? main
+        switch singleEarbud {
+        case .left: left
+        case .right: right
+        case nil: [left, right].compactMap(\.self).min() ?? main
+        }
+    }
+
+    /// Whether macOS already knows the headphones are out of the case. Right after connecting, it may still have both
+    /// earbuds there from before.
+    var isInUse: Bool {
+        main != nil || (left != nil && !leftIsInCase) || (right != nil && !rightIsInCase)
+    }
+
+    /// The earbud in use when the other one stays in the case.
+    var singleEarbud: Earbud? {
+        let leftInUse = left != nil && !leftIsInCase
+        let rightInUse = right != nil && !rightIsInCase
+        switch (leftInUse, rightInUse) {
+        case (true, false): return .left
+        case (false, true): return .right
+        default: return nil
+        }
     }
 }
 
 extension HeadphonesBattery {
-    /// Reads the charge of a connected device from `system_profiler SPBluetoothDataType -json`, which macOS fills in
-    /// for AirPods and Beats. Returns nil when the device isn't connected or reports no battery.
-    init?(systemProfilerJSON data: Data, deviceName: String) {
-        guard let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let controllers = root["SPBluetoothDataType"] as? [[String: Any]]
-        else { return nil }
+    /// Reads the charge of a device from accessory power sources, as `AccessoryPowerSources.descriptions()` returns
+    /// them: one per earbud and one for the case, all named after the device. Returns nil when there's none.
+    init?(powerSources: [[String: Any]], deviceName: String, productID: Int?) {
+        let parts = powerSources.filter { source in
+            guard (source[kIOPSNameKey] as? String)?.hasPrefix(deviceName) == true else { return false }
+            guard let productID else { return true }
+            return source["Product ID"] as? Int == productID
+        }
+        guard !parts.isEmpty else { return nil }
 
-        let connected = controllers
-            .flatMap { $0["device_connected"] as? [[String: Any]] ?? [] }
-            .compactMap { $0[deviceName] as? [String: Any] }
-        guard let info = connected.first else { return nil }
-
-        func percent(_ key: String) -> Int? {
-            guard let value = info[key] as? String else { return nil }
-            return Int(value.trimmingCharacters(in: CharacterSet(charactersIn: "% ")))
+        func charge(of source: [String: Any]) -> Int? {
+            source[kIOPSCurrentCapacityKey] as? Int
+        }
+        func isOnCasePower(_ source: [String: Any]) -> Bool {
+            source[kIOPSPowerSourceStateKey] as? String == kIOPSACPowerValue
         }
 
-        self.init(
-            left: percent("device_batteryLevelLeft"),
-            right: percent("device_batteryLevelRight"),
-            case: percent("device_batteryLevelCase"),
-            main: percent("device_batteryLevelMain")
-        )
+        self.init()
+        for part in parts {
+            switch part["Part Identifier"] as? String {
+            case "Left":
+                left = charge(of: part)
+                leftIsInCase = isOnCasePower(part)
+            case "Right":
+                right = charge(of: part)
+                rightIsInCase = isOnCasePower(part)
+            case "Case":
+                self.case = charge(of: part)
+            default:
+                main = charge(of: part)
+            }
+        }
         guard level != nil || self.case != nil else { return nil }
+    }
+}
+
+/// The power sources of accessories such as AirPods and Beats, which macOS keeps for its Batteries widget. The public
+/// IOKit call only lists the Mac's own battery, so this looks up the private one that lists accessories, the same way
+/// `DisplayBrightness` uses DisplayServices.
+enum AccessoryPowerSources {
+    private typealias CopyPowerSourcesByType = @convention(c) (Int32) -> Unmanaged<CFTypeRef>?
+
+    /// kIOPSSourceForAccessories in IOKit's private headers.
+    private static let accessoriesType: Int32 = 4
+
+    private static let copyPowerSourcesByType: CopyPowerSourcesByType? = {
+        // RTLD_DEFAULT: IOKit is already loaded.
+        guard let symbol = dlsym(UnsafeMutableRawPointer(bitPattern: -2), "IOPSCopyPowerSourcesByType") else {
+            return nil
+        }
+        return unsafeBitCast(symbol, to: CopyPowerSourcesByType.self)
+    }()
+
+    /// Whether this macOS still has the private call.
+    static var isAvailable: Bool {
+        copyPowerSourcesByType != nil
+    }
+
+    static func descriptions() -> [[String: Any]] {
+        guard let copyPowerSourcesByType, let blob = copyPowerSourcesByType(accessoriesType)?.takeRetainedValue(),
+              let list = IOPSCopyPowerSourcesList(blob)?.takeRetainedValue() as? [CFTypeRef]
+        else { return [] }
+        return list.compactMap { IOPSGetPowerSourceDescription(blob, $0)?.takeUnretainedValue() as? [String: Any] }
     }
 }
 
@@ -47,6 +116,6 @@ struct HeadphonesEvent: Equatable, Sendable {
     var deviceID: String
     var name: String
     var icon: DeviceIcon
-    /// Arrives a moment after the connection, once macOS knows it, or never for headphones that don't report it.
+    /// Known for AirPods and Beats, which report it to macOS.
     var battery: HeadphonesBattery?
 }
