@@ -17,6 +17,17 @@ final class NowPlayingService {
     @ObservationIgnored private var readTask: Task<Void, Never>?
     @ObservationIgnored private var artworkData: Data?
     @ObservationIgnored private var isRunning = false
+    /// macOS reports a new track a moment before its artwork. For this long the notch keeps the previous artwork rather
+    /// than blinking to the placeholder, and the title waits to show in the new artwork's colors.
+    @ObservationIgnored private let artworkGrace: Duration
+    /// Running while the artwork of a new track is on its way.
+    @ObservationIgnored private var artworkWait: Task<Void, Never>?
+    /// Playback that started while its artwork was on its way, reported once the artwork is here or the wait is over.
+    @ObservationIgnored private var startsWithArtwork = false
+
+    init(artworkGrace: Duration = .milliseconds(800)) {
+        self.artworkGrace = artworkGrace
+    }
 
     func start() {
         guard !isRunning else { return }
@@ -112,26 +123,40 @@ final class NowPlayingService {
         }
     }
 
-    private func apply(_ snapshot: NowPlayingSnapshot?) {
+    /// Internal rather than private for the tests.
+    func apply(_ snapshot: NowPlayingSnapshot?) {
         guard let snapshot else {
             track = nil
             artworkData = nil
+            stopWaitingForArtwork()
             return
         }
 
-        var artwork = track?.artwork
-        var artworkColor = track?.artworkColor
-        if snapshot.artworkData != artworkData {
-            artworkData = snapshot.artworkData
-            artwork = snapshot.artwork.map { NSImage(cgImage: $0.image, size: .zero) }
-            artworkColor = snapshot.artwork?.color
+        let previous = track
+        let isNewItem = previous.map {
+            $0.title != snapshot.title || $0.artist != snapshot.artist || $0.album != snapshot.album
+        } ?? true
+
+        var artwork = previous?.artwork
+        var artworkColor = previous?.artworkColor
+        if snapshot.artworkData == nil, isNewItem || artworkWait != nil {
+            // A new track without artwork yet. It's probably on its way: keep what's shown for a moment.
+            waitForArtwork()
+        } else {
+            if snapshot.artworkData != artworkData {
+                artworkData = snapshot.artworkData
+                artwork = snapshot.artwork.map { NSImage(cgImage: $0.image, size: .zero) }
+                artworkColor = snapshot.artwork?.color
+            }
+            // Also when the same artwork came back, for the next track of the same album.
+            artworkWait?.cancel()
+            artworkWait = nil
         }
 
         let appURL = snapshot.appBundleIdentifier.flatMap {
             NSWorkspace.shared.urlForApplication(withBundleIdentifier: $0)
         }
 
-        let previous = track
         let current = NowPlayingTrack(
             title: snapshot.title,
             artist: snapshot.artist,
@@ -148,7 +173,52 @@ final class NowPlayingService {
         )
         track = current
         if TrackTitle.isWorthShowing(from: previous, to: current) {
-            onPlaybackStart?(current)
+            reportStart(of: current)
+        } else if startsWithArtwork, artworkWait == nil {
+            // The artwork came.
+            reportStart(of: current)
+        }
+    }
+
+    // MARK: - Artwork on its way
+
+    private func waitForArtwork() {
+        guard artworkWait == nil else { return }
+        artworkWait = Task { [weak self, artworkGrace] in
+            try? await Task.sleep(for: artworkGrace)
+            guard !Task.isCancelled else { return }
+            self?.artworkDidNotCome()
+        }
+    }
+
+    /// The new track has no artwork after all.
+    private func artworkDidNotCome() {
+        artworkWait = nil
+        artworkData = nil
+        guard var track else { return }
+        track.artwork = nil
+        track.artworkColor = nil
+        self.track = track
+        if startsWithArtwork {
+            reportStart(of: track)
+        }
+    }
+
+    private func stopWaitingForArtwork() {
+        artworkWait?.cancel()
+        artworkWait = nil
+        startsWithArtwork = false
+    }
+
+    /// Reports a start now, or once the artwork is settled, so the title shows in its colors from the first frame.
+    private func reportStart(of track: NowPlayingTrack) {
+        guard artworkWait == nil else {
+            startsWithArtwork = true
+            return
+        }
+        startsWithArtwork = false
+        if track.isPlaying {
+            onPlaybackStart?(track)
         }
     }
 
