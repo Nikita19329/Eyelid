@@ -45,6 +45,9 @@ jobs:
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
 
+      - name: Test
+        run: make test
+
       - name: Build a universal app
         run: UNIVERSAL=1 make app
 

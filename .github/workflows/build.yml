@@ -39,6 +39,9 @@ jobs:
       - name: Build
         run: make app
 
+      - name: Test
+        run: make test
+
       - name: Package
         # ditto keeps the symlinks inside MediaRemoteAdapter.framework, which an artifact upload would flatten.
         run: ditto -c -k --keepParent build/Eyelid.app build/Eyelid.zip
