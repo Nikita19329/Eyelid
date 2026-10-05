@@ -11,12 +11,18 @@ final class ShelfDragSource: NSObject, NSDraggingSource {
     var onDrop: (([ShelfItem.ID]) -> Void)?
     private var draggedItems: [ShelfItem.ID] = []
 
-    func beginDrag(of item: ShelfItem, image: NSImage, frame: CGRect, event: NSEvent, from view: NSView) {
-        let draggingItem = NSDraggingItem(pasteboardWriter: item.url as NSURL)
-        draggingItem.setDraggingFrame(frame, contents: image)
-        draggedItems = [item.id]
-        let session = view.beginDraggingSession(with: [draggingItem], event: event, source: self)
+    /// Drags one file with `image` in `frame`, or several fanned out from there, each with its own icon.
+    func beginDrag(of items: [ShelfItem], image: NSImage, frame: CGRect, event: NSEvent, from view: NSView) {
+        let draggingItems = items.enumerated().map { index, item in
+            let draggingItem = NSDraggingItem(pasteboardWriter: item.url as NSURL)
+            let contents = index == 0 ? image : ShelfThumbnails.image(for: item.url)
+            draggingItem.setDraggingFrame(frame.offsetBy(dx: CGFloat(index) * 6, dy: CGFloat(index) * 6), contents: contents)
+            return draggingItem
+        }
+        draggedItems = items.map(\.id)
+        let session = view.beginDraggingSession(with: draggingItems, event: event, source: self)
         session.animatesToStartingPositionsOnCancelOrFail = true
+        session.draggingFormation = .pile
     }
 
     func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
@@ -35,8 +41,11 @@ final class ShelfDragSource: NSObject, NSDraggingSource {
 }
 
 /// The mouse on a shelf tile: drag to take the file out, double-click to open it, right-click for a menu.
+/// The tile for all the files drags them all.
 struct ShelfTileMouseArea: NSViewRepresentable {
-    let item: ShelfItem
+    let items: [ShelfItem]
+    /// Whether this is the tile for all the files, rather than one of them.
+    var isAll = false
     let image: NSImage
     /// Where the tile shows the image, in the tile's coordinates with the origin at the top left.
     let imageFrame: CGRect
@@ -48,7 +57,8 @@ struct ShelfTileMouseArea: NSViewRepresentable {
     }
 
     func updateNSView(_ view: ShelfTileMouseView, context: Context) {
-        view.item = item
+        view.items = items
+        view.isAll = isAll
         view.image = image
         view.imageFrame = imageFrame
         view.shelf = shelf
@@ -57,7 +67,8 @@ struct ShelfTileMouseArea: NSViewRepresentable {
 }
 
 final class ShelfTileMouseView: NSView {
-    var item: ShelfItem?
+    var items: [ShelfItem] = []
+    var isAll = false
     var image: NSImage?
     var imageFrame: CGRect = .zero
     weak var shelf: Shelf?
@@ -74,35 +85,44 @@ final class ShelfTileMouseView: NSView {
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard let mouseDown, let item, let image, let dragSource else { return }
+        guard let mouseDown, !items.isEmpty, let image, let dragSource else { return }
         let start = mouseDown.locationInWindow
         let now = event.locationInWindow
         guard hypot(now.x - start.x, now.y - start.y) > 3 else { return }
 
         self.mouseDown = nil
-        dragSource.beginDrag(of: item, image: image, frame: Self.fit(image.size, in: imageFrame), event: mouseDown, from: self)
+        dragSource.beginDrag(of: items, image: image, frame: Self.fit(image.size, in: imageFrame), event: mouseDown, from: self)
     }
 
     override func mouseUp(with event: NSEvent) {
         mouseDown = nil
-        if event.clickCount == 2, let item {
+        if event.clickCount == 2, !isAll, let item = items.first {
             NSWorkspace.shared.open(item.url)
         }
     }
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        guard let item else { return nil }
+        let urls = items.map(\.url)
         let menu = NSMenu()
-        menu.addItem(ActionMenuItem("Open") {
-            NSWorkspace.shared.open(item.url)
-        })
-        menu.addItem(ActionMenuItem("Show in Finder") {
-            NSWorkspace.shared.activateFileViewerSelecting([item.url])
-        })
-        menu.addItem(.separator())
-        menu.addItem(ActionMenuItem("Remove from Shelf") { [weak shelf] in
-            shelf?.remove(item.id)
-        })
+        if isAll {
+            menu.addItem(ActionMenuItem("AirDrop All…") {
+                ShelfSharing.airDrop(urls)
+            })
+        } else if let item = items.first {
+            menu.addItem(ActionMenuItem("Open") {
+                NSWorkspace.shared.open(item.url)
+            })
+            menu.addItem(ActionMenuItem("Show in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([item.url])
+            })
+            menu.addItem(ActionMenuItem("AirDrop…") {
+                ShelfSharing.airDrop(urls)
+            })
+            menu.addItem(.separator())
+            menu.addItem(ActionMenuItem("Remove from Shelf") { [weak shelf] in
+                shelf?.remove(item.id)
+            })
+        }
         menu.addItem(ActionMenuItem("Clear Shelf") { [weak shelf] in
             shelf?.removeAll()
         })
