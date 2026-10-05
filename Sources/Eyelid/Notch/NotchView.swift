@@ -48,14 +48,24 @@ private struct OpenNotchView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // The strip beside the hardware notch: the battery sits on the right.
-            HStack {
-                Spacer()
-                if let battery = model.battery.state {
-                    BatteryIndicator(state: battery)
+            // The strip beside the hardware notch: the volume and brightness HUD in the same places as
+            // in the closed notch, otherwise the battery on the right.
+            ZStack {
+                if let hud = model.hud {
+                    HUDView(event: hud, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
+                        .transition(.opacity)
+                } else {
+                    HStack {
+                        Spacer()
+                        if let battery = model.battery.state {
+                            BatteryIndicator(state: battery)
+                        }
+                    }
+                    .transition(.opacity)
                 }
             }
             .frame(height: model.geometry.notchSize.height)
+            .animation(.easeOut(duration: 0.15), value: model.hud == nil)
 
             Group {
                 if let track = model.nowPlaying.track {
