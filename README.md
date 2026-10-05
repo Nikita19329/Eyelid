@@ -19,7 +19,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 
 > **Status:** early, but usable day to day. Expect rough edges.
 
-**Contents:** [Features](#features) · [Install](#install) · [Privacy](#privacy) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Security](#security) · [Contributing](#contributing) · [Roadmap](#roadmap) · [License](#license)
+**Contents:** [Features](#features) · [Install](#install) · [Privacy](#privacy) · [Build from source](#build-from-source) · [How it works](#how-it-works) · [Security](#security) · [Support](#support) · [Contributing](#contributing) · [Roadmap](#roadmap) · [License](#license)
 
 ## Features
 
@@ -202,6 +202,10 @@ With the volume and brightness HUD on, Eyelid holds Accessibility access: it can
 - **Code only from the bundle.** Release builds load the adapter only from the app bundle. Looking in the working directory, for `swift run`, is limited to debug builds.
 - **Careful with artwork.** Any app or web page can set now playing artwork. Eyelid drops images over about 8 MB or 50 megapixels, decodes the rest away from the main thread, and scales them down to what the notch shows.
 - **Supply chain.** mediaremote-adapter is pinned to a reviewed release. Workflows pin GitHub Actions to commit SHAs, which Dependabot keeps current. Release zips come with a build provenance attestation.
+
+## Support
+
+Eyelid is free and open source, and made in spare time. If it's useful to you, you can support my work on [Boosty](https://boosty.to/satis.ku). The first goal is an Apple Developer membership, so Eyelid can be notarized: no more Open Anyway on the first launch, and Accessibility access that survives updates.
 
 ## Contributing
 
