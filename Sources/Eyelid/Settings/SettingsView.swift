@@ -221,7 +221,7 @@ private struct AboutSettings: View {
             Section {
                 LabeledContent("Version", value: Self.version)
                 LabeledContent("License", value: "GNU GPL v3")
-                Link("Source code on GitHub", destination: URL(string: "https://github.com/Nikita19329/Eyelid")!)
+                Link("Source code on GitHub", destination: URL(string: "https://github.com/Satis-ku/Eyelid")!)
             }
         }
         .formStyle(.grouped)
