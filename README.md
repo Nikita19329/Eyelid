@@ -15,7 +15,7 @@ Eyelid sits on top of the notch and blends in with it. Hover over the notch and 
 - **Now Playing from any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget shows up with artwork, progress, and playback controls.
 - **Live activity.** While something plays, the closed notch shows the artwork on one side and an equalizer on the other.
 - **Battery.** Plugging in or unplugging the charger shows the charge next to the notch for a few seconds, and so does the battery dropping to 20% and 10%. The open notch always shows the battery level.
-- **Volume and brightness.** The volume, mute and brightness keys show their level next to the notch instead of the system HUD. Option-Shift changes it in quarter steps, as in macOS. This is off by default, since it needs Accessibility access.
+- **Volume and brightness.** The volume, mute and brightness keys show their level next to the notch instead of the system HUD, in the closed notch and in the open one. The volume HUD shows the output device: AirPods, Beats, headphones, the MacBook speaker and more. You can pick the icon for each device and one of five level styles: bar, thick bar, segments, percentage or ring. Option-Shift changes the level in quarter steps, as in macOS. This is off by default, since it needs Accessibility access.
 - **Stays out of the way.** No Dock icon, works on every Space and over full-screen apps, and clicks pass through to the menu bar while the notch is closed.
 - **Settings.** Choose how long the pointer rests on the notch before it opens, turn on the volume and brightness HUD, turn off haptics, the live activity or battery activity, pick the display, and launch Eyelid at login.
 - **Macs without a notch** get a virtual one at the top of the main display.
@@ -98,7 +98,9 @@ The Release workflow runs the tests and builds a universal app stamped with the 
 
 **Volume and brightness.** With the setting on, an event tap intercepts the volume, mute and brightness keys, which needs Accessibility access. Eyelid changes the level itself, so macOS never sees the press and never shows its HUD. Volume goes through CoreAudio. macOS has no public API for display brightness, so Eyelid calls the private DisplayServices framework, as MonitorControl and similar utilities do. If a key can't be handled, for example on an output without volume control, it's passed on to macOS as usual.
 
-Since Eyelid is signed ad hoc, macOS ties the Accessibility permission to one exact build. After an update or a rebuild, remove Eyelid from **System Settings → Privacy & Security → Accessibility** and allow it again.
+The volume HUD picks the device icon from what CoreAudio reports about the output: the connection type, whether wired headphones are plugged in, and for Bluetooth the model UID, which holds the vendor and product ID. That's enough for AirPods and Beats, even after renaming them. Other Bluetooth devices all look like headphones to macOS, so Settings lets you pick an icon for each device.
+
+Since Eyelid is signed ad hoc, macOS ties the Accessibility permission to one exact build. After an update or a rebuild, remove Eyelid from **System Settings → Privacy & Security → Accessibility** and allow it again. Eyelid shows the system prompt for it on launch.
 
 ## Project layout
 
