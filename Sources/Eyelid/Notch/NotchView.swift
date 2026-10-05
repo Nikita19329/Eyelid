@@ -110,7 +110,7 @@ private struct NotchTabs: View {
             }
             if model.settings.clipboardEnabled {
                 TabButton(title: "Clipboard", systemImage: "doc.on.clipboard", isSelected: model.tab == .clipboard) {
-                    model.clipboardSelection = 0
+                    model.resetClipboard()
                     model.tab = .clipboard
                 }
             }

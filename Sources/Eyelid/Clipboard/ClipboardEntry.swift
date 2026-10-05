@@ -19,12 +19,21 @@ struct ClipboardEntry: Identifiable {
     let detail: String?
     let fileURLs: [URL]
     let thumbnail: CGImage?
+    /// What typing in the history matches: all of a text, or file names.
+    let searchText: String
     /// The app that was in front when the copy was made.
     var sourceAppURL: URL?
     var date: Date
+    /// Pinned copies stay at the top, aren't pushed out by new ones, and are kept when Eyelid quits.
+    var isPinned = false
 
     func hasSameContent(as other: ClipboardEntry) -> Bool {
         items == other.items
+    }
+
+    /// Whether typing `query` in the history finds this copy. Ignores case and accents, as Finder does.
+    func matches(_ query: String) -> Bool {
+        query.isEmpty || searchText.localizedStandardContains(query)
     }
 }
 
@@ -41,11 +50,13 @@ extension ClipboardEntry {
                 .joined(separator: ", ")
             detail = fileURLs.count > 1 ? "\(fileURLs.count) files" : nil
             thumbnail = nil
+            searchText = title
         } else if let text, !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             kind = .text
             title = Self.preview(of: text)
             detail = Self.detail(of: text)
             thumbnail = nil
+            searchText = text
         } else if let image = items.first.flatMap({ $0[.png] ?? $0[.tiff] }),
                   let source = CGImageSourceCreateWithData(image as CFData, nil),
                   let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString: Any],
@@ -54,6 +65,7 @@ extension ClipboardEntry {
             kind = .image
             title = "Image"
             detail = "\(width) × \(height)"
+            searchText = title
             thumbnail = CGImageSourceCreateThumbnailAtIndex(source, 0, [
                 kCGImageSourceCreateThumbnailFromImageAlways: true,
                 kCGImageSourceCreateThumbnailWithTransform: true,
@@ -90,5 +102,32 @@ extension ClipboardEntry {
         }
         let characters = text.trimmingCharacters(in: .whitespacesAndNewlines).count
         return characters > 120 ? "\(characters.formatted()) characters" : nil
+    }
+}
+
+// MARK: - Storage
+
+extension ClipboardEntry {
+    /// How a pinned copy is saved: the pasteboard data, from which everything else is made again.
+    struct Stored: Codable {
+        var items: [[String: Data]]
+        var sourceAppURL: URL?
+        var date: Date
+    }
+
+    var stored: Stored {
+        Stored(
+            items: items.map { Dictionary(uniqueKeysWithValues: $0.map { ($0.key.rawValue, $0.value) }) },
+            sourceAppURL: sourceAppURL,
+            date: date
+        )
+    }
+
+    init?(stored: Stored) {
+        let items = stored.items.map {
+            Dictionary(uniqueKeysWithValues: $0.map { (NSPasteboard.PasteboardType($0.key), $0.value) })
+        }
+        self.init(items: items, sourceAppURL: stored.sourceAppURL, date: stored.date)
+        isPinned = true
     }
 }

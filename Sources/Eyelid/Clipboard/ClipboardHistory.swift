@@ -4,10 +4,12 @@ import os
 
 private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Clipboard")
 
-/// The last things copied, newest first. Kept in memory only, so the history is gone when Eyelid quits.
+/// The last things copied, newest first, after the pinned ones. Kept in memory only, so the history is gone when
+/// Eyelid quits, except for pinned copies, which are saved.
 @MainActor
 @Observable
 final class ClipboardHistory {
+    /// How many copies the history keeps, not counting pinned ones.
     static let maxEntries = 50
     /// Copies larger than this are left out rather than kept in memory.
     static let maxEntrySize = 20 * 1024 * 1024
@@ -40,10 +42,22 @@ final class ClipboardHistory {
     @ObservationIgnored private let pasteboard: NSPasteboard
     @ObservationIgnored private var lastChangeCount: Int
     @ObservationIgnored private var monitorTask: Task<Void, Never>?
+    /// Where pinned copies are saved, or nil to keep them in memory too.
+    @ObservationIgnored private let pinnedFile: URL?
 
-    init(pasteboard: NSPasteboard = .general) {
+    init(pasteboard: NSPasteboard = .general, pinnedFile: URL?) {
         self.pasteboard = pasteboard
+        self.pinnedFile = pinnedFile
         lastChangeCount = pasteboard.changeCount
+        entries = loadPinned()
+    }
+
+    static var defaultPinnedFile: URL {
+        URL.applicationSupportDirectory.appending(path: "io.github.nikita19329.eyelid/Clipboard/Pinned.plist")
+    }
+
+    var pinnedCount: Int {
+        entries.count { $0.isPinned }
     }
 
     /// Since macOS 15.4 the user decides in Privacy & Security → Paste from Other Apps.
@@ -120,13 +134,31 @@ final class ClipboardHistory {
 
     // MARK: - Changes
 
-    /// Puts an entry first. Copying the same thing again moves its entry up rather than adding another.
+    /// Puts an entry first, after the pinned ones. Copying the same thing again moves its entry up rather than
+    /// adding another, and a pinned copy stays where it is.
     func add(_ entry: ClipboardEntry) {
-        entries.removeAll { $0.hasSameContent(as: entry) }
-        entries.insert(entry, at: 0)
-        if entries.count > Self.maxEntries {
-            entries.removeLast(entries.count - Self.maxEntries)
+        if let index = entries.firstIndex(where: { $0.isPinned && $0.hasSameContent(as: entry) }) {
+            entries[index].date = entry.date
+            return
         }
+        entries.removeAll { $0.hasSameContent(as: entry) }
+        var entry = entry
+        entry.isPinned = false
+        entries.insert(entry, at: pinnedCount)
+
+        let unpinned = entries.count - pinnedCount
+        if unpinned > Self.maxEntries {
+            entries.removeLast(unpinned - Self.maxEntries)
+        }
+    }
+
+    /// Pinning moves a copy to the top, unpinning to the top of the others.
+    func setPinned(_ id: ClipboardEntry.ID, _ isPinned: Bool) {
+        guard let index = entries.firstIndex(where: { $0.id == id }), entries[index].isPinned != isPinned else { return }
+        var entry = entries.remove(at: index)
+        entry.isPinned = isPinned
+        entries.insert(entry, at: isPinned ? 0 : pinnedCount)
+        savePinned()
     }
 
     /// Puts an entry back on the pasteboard and moves it to the top.
@@ -149,10 +181,48 @@ final class ClipboardHistory {
     }
 
     func remove(_ id: ClipboardEntry.ID) {
+        let wasPinned = entries.contains { $0.id == id && $0.isPinned }
         entries.removeAll { $0.id == id }
+        if wasPinned {
+            savePinned()
+        }
     }
 
+    /// Clears the history. Pinned copies stay until they're unpinned or removed one by one.
     func removeAll() {
-        entries.removeAll()
+        entries.removeAll { !$0.isPinned }
+    }
+
+    // MARK: - Pinned copies
+
+    private func loadPinned() -> [ClipboardEntry] {
+        guard let pinnedFile, let data = try? Data(contentsOf: pinnedFile) else { return [] }
+        do {
+            return try PropertyListDecoder().decode([ClipboardEntry.Stored].self, from: data)
+                .compactMap(ClipboardEntry.init(stored:))
+        } catch {
+            logger.error("Could not read pinned copies: \(error.localizedDescription, privacy: .public)")
+            return []
+        }
+    }
+
+    private func savePinned() {
+        guard let pinnedFile else { return }
+        let pinned = entries.filter(\.isPinned).map(\.stored)
+        do {
+            if pinned.isEmpty {
+                try? FileManager.default.removeItem(at: pinnedFile)
+                return
+            }
+            try FileManager.default.createDirectory(
+                at: pinnedFile.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            let encoder = PropertyListEncoder()
+            encoder.outputFormat = .binary
+            try encoder.encode(pinned).write(to: pinnedFile, options: .atomic)
+        } catch {
+            logger.error("Could not save pinned copies: \(error.localizedDescription, privacy: .public)")
+        }
     }
 }
