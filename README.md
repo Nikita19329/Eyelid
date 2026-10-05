@@ -1,0 +1,91 @@
+# Eyelid
+
+An open-source, Dynamic Island–style notch for your MacBook.
+
+Eyelid sits on top of the notch and blends in with it. Hover over the notch and it opens up to show what's playing; move the pointer away and it tucks back in.
+
+> **Status:** early prototype. Expect rough edges and breaking changes.
+
+## Features
+
+- **Blends into the notch.** The closed notch matches the hardware cutout, so you don't notice Eyelid until you need it.
+- **Hover to open.** It opens when the pointer reaches the notch (with a haptic tick on Force Touch trackpads) and closes when the pointer leaves.
+- **Now Playing from any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget shows up with artwork, progress, and playback controls.
+- **Live activity.** While something plays, the closed notch shows the artwork on one side and an equalizer on the other.
+- **Stays out of the way.** No Dock icon, works on every Space and over full-screen apps, and clicks pass through to the menu bar while the notch is closed.
+- **Macs without a notch** get a virtual one at the top of the main display.
+
+## Requirements
+
+- macOS 14 Sonoma or later (developed on macOS 27)
+- Xcode, or the Command Line Tools for Xcode
+- CMake: `brew install cmake`
+
+The current code builds with the Command Line Tools alone. On the macOS 27 SDK, though, SwiftUI's `@State` is a macro whose compiler plugin ships only with Xcode, so you'll want Xcode once you start adding views with local state.
+
+## Build and run
+
+```sh
+git clone --recurse-submodules https://github.com/Nikita19329/Eyelid.git
+cd Eyelid
+make run
+```
+
+`make run` builds `build/Eyelid.app`, quits a running copy, and launches the new one. Other targets:
+
+| Command      | What it does                                   |
+|--------------|------------------------------------------------|
+| `make app`   | Release build of `build/Eyelid.app`            |
+| `make debug` | Debug build of `build/Eyelid.app`              |
+| `make clean` | Removes `.build` and `build`                   |
+
+After `make app` has run once, `swift run` from the repository root works too, which is handy for quick iterations. To work in Xcode, open `Package.swift`.
+
+To quit Eyelid, use the eye icon in the menu bar.
+
+The app is signed ad hoc. If you copy a build to another Mac, Gatekeeper will refuse to open it until you allow it in **System Settings → Privacy & Security**, or remove the quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Eyelid.app
+```
+
+## How it works
+
+**The notch window.** A borderless, non-activating `NSPanel` floats just above the menu bar on every Space. Its size comes from `NSScreen.safeAreaInsets` and the `auxiliaryTopLeftArea` / `auxiliaryTopRightArea` next to the notch. The panel ignores mouse events while closed, so the menu bar under it stays clickable. A global mouse monitor opens it when the pointer enters the notch. Mouse events, unlike key events, don't need the Accessibility permission.
+
+**Now Playing.** Since macOS 15.4, MediaRemote (the private framework behind the Now Playing widget) only answers Apple's own entitled processes. Eyelid uses [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter). The adapter loads a small framework into Apple's signed `/usr/bin/perl`, which is still allowed to query MediaRemote, and streams updates as JSON lines. Eyelid runs `mediaremote-adapter.pl … stream` as a child process and decodes its output.
+
+## Project layout
+
+```
+Sources/Eyelid/
+  App/          App entry point, menu bar item, app delegate
+  Notch/        Notch geometry, panel, shape, hover handling, root view
+  NowPlaying/   mediaremote-adapter client, now playing model and views
+Resources/      Info.plist
+scripts/        build-app.sh: assembles and signs Eyelid.app without Xcode
+Vendor/         mediaremote-adapter (git submodule)
+```
+
+## Roadmap
+
+- [ ] Settings window: hover delay, haptics, choice of display
+- [ ] Launch at login (`SMAppService`)
+- [ ] Battery and charging activity
+- [ ] Volume and brightness HUD
+- [ ] Calendar: upcoming events
+- [ ] File shelf: drop files onto the notch
+- [ ] Notches on several displays at once
+- [ ] Universal (arm64 + x86_64) release builds, Sparkle updates, Homebrew cask
+
+## Contributing
+
+Issues and pull requests are welcome. For anything bigger than a small fix, please open an issue first so we can agree on the approach.
+
+## License
+
+Eyelid is licensed under the [GNU General Public License v3.0](LICENSE).
+
+It bundles [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter) by Jonas van den Berg and contributors, licensed under the BSD 3-Clause License. Its license text is included in the app bundle under `Contents/Resources/Licenses`.
+
+Eyelid is inspired by Dynamic Island and by notch apps such as Alcove and boring.notch. It is an independent project and is not affiliated with Apple or with any of those apps.
