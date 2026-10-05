@@ -140,7 +140,7 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 ### Updating and uninstalling
 
 - **Update:** `brew upgrade --cask eyelid`. By hand: quit Eyelid from the menu bar, replace `Eyelid.app` with the new one, and open it.
-- **Uninstall:** turn off **Launch at login** in Settings first. Then run `brew uninstall --cask --zap eyelid`, which also removes Eyelid's settings and the files it saved for the shelf. By hand: quit Eyelid, delete `Eyelid.app`, run `defaults delete io.github.nikita19329.eyelid`, and delete `~/Library/Application Support/io.github.nikita19329.eyelid`. Remove Eyelid from the Accessibility list if you allowed it there.
+- **Uninstall:** turn off **Launch at login** in Settings first. Then run `brew uninstall --cask --zap eyelid`, which also removes Eyelid's settings and the files it saved for the shelf. By hand: quit Eyelid, delete `Eyelid.app`, run `defaults delete io.github.satis-ku.eyelid`, and delete `~/Library/Application Support/io.github.satis-ku.eyelid`. Remove Eyelid from the Accessibility list if you allowed it there.
 
 ## Privacy
 

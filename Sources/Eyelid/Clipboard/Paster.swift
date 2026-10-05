@@ -2,7 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Clipboard")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "Clipboard")
 
 /// Pastes into the app in front by pressing ⌘V for it, which needs Accessibility access.
 @MainActor

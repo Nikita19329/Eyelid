@@ -1,7 +1,7 @@
 import Foundation
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "MediaRemoteAdapter")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "MediaRemoteAdapter")
 
 /// Talks to [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter).
 ///

@@ -2,7 +2,7 @@ import Foundation
 import Observation
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Shelf")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "Shelf")
 
 /// A file kept on the shelf.
 struct ShelfItem: Identifiable, Equatable {
@@ -43,7 +43,7 @@ final class Shelf {
     }
 
     static var defaultPromisedFilesDirectory: URL {
-        URL.applicationSupportDirectory.appending(path: "io.github.nikita19329.eyelid/Shelf", directoryHint: .isDirectory)
+        URL.applicationSupportDirectory.appending(path: "io.github.satis-ku.eyelid/Shelf", directoryHint: .isDirectory)
     }
 
     // MARK: - Changes
