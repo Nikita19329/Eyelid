@@ -35,52 +35,86 @@ struct HUDEvent: Equatable, Sendable {
     }
 }
 
+/// Intercepts the volume and brightness keys: `MediaKeyTap` in the app, a stand-in in tests.
+@MainActor
+protocol KeyTap: AnyObject {
+    var isRunning: Bool { get }
+    /// Returns false without the Accessibility permission.
+    func start() -> Bool
+    func stop()
+}
+
+/// The Accessibility permission that the key tap needs: the system's in the app, a stand-in in tests.
+struct AccessibilityAccess {
+    var isGranted: @MainActor () -> Bool = { AXIsProcessTrusted() }
+    /// Shows the system prompt that leads to the Accessibility list in System Settings.
+    var request: @MainActor () -> Void = {
+        // The key is kAXTrustedCheckOptionPrompt, which Swift 6 flags as a mutable global.
+        AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+    }
+}
+
 /// Replaces the system volume and brightness HUD: handles the keys itself and reports every change.
 @MainActor
 final class HUDService {
     var onEvent: (@MainActor (HUDEvent) -> Void)?
 
     private let settings: AppSettings
-    private var tap: MediaKeyTap!
-    private var permissionTask: Task<Void, Never>?
-    private var hasPromptedForAccess = false
+    private let access: AccessibilityAccess
+    private var tap: (any KeyTap)!
+    private var accessTask: Task<Void, Never>?
+    private var hasRequestedAccess = false
 
-    init(settings: AppSettings) {
+    init(
+        settings: AppSettings,
+        access: AccessibilityAccess = AccessibilityAccess(),
+        makeTap: (@escaping @MainActor (MediaKeyPress) -> Bool) -> any KeyTap = { MediaKeyTap(handler: $0) }
+    ) {
         self.settings = settings
-        tap = MediaKeyTap { [weak self] press in
+        self.access = access
+        tap = makeTap { [weak self] press in
             self?.handle(press) ?? false
         }
     }
 
     /// Starts handling the keys, or waits for the Accessibility permission first.
     func setEnabled(_ enabled: Bool) {
-        permissionTask?.cancel()
-        permissionTask = nil
+        accessTask?.cancel()
+        accessTask = nil
 
         guard enabled else {
             tap.stop()
             return
         }
-        guard !tap.start() else { return }
 
-        // The ad hoc signature ties access to one build, so updates lose it too. Ask once per launch.
-        if !hasPromptedForAccess {
-            hasPromptedForAccess = true
-            // The key is kAXTrustedCheckOptionPrompt, which Swift 6 flags as a mutable global.
-            AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        if !tap.start() {
+            logger.info("Waiting for Accessibility access to handle volume and brightness keys")
+            // The ad hoc signature ties access to one build, so updates lose it too. Ask once per launch.
+            if !hasRequestedAccess {
+                hasRequestedAccess = true
+                access.request()
+            }
         }
 
-        // Access is granted in System Settings, outside the app, so check back until it is.
-        logger.info("Waiting for Accessibility access to handle volume and brightness keys")
-        permissionTask = Task { [weak self] in
+        // Access is granted and taken away in System Settings, outside the app, so keep checking.
+        accessTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(2))
                 guard let self, !Task.isCancelled else { return }
-                if AXIsProcessTrusted(), tap.start() {
-                    logger.info("Accessibility access granted, handling volume and brightness keys")
-                    return
-                }
+                followAccess()
             }
+        }
+    }
+
+    /// Starts handling the keys once Accessibility access is granted, and stops as soon as it's taken away:
+    /// macOS keeps sending events to a tap that has lost access, and input across the Mac stalls while it waits.
+    func followAccess() {
+        let isGranted = access.isGranted()
+        if tap.isRunning, !isGranted {
+            tap.stop()
+            logger.info("Accessibility access was taken away, leaving volume and brightness keys to macOS")
+        } else if !tap.isRunning, isGranted, tap.start() {
+            logger.info("Accessibility access granted, handling volume and brightness keys")
         }
     }
 

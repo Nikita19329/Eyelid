@@ -3,7 +3,7 @@ import AppKit
 /// Intercepts volume and brightness keys with an event tap, which needs the Accessibility permission.
 /// Presses that `handler` returns true for never reach macOS, so the system HUD doesn't appear.
 @MainActor
-final class MediaKeyTap {
+final class MediaKeyTap: KeyTap {
     private let handler: @MainActor (MediaKeyPress) -> Bool
     private var tap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
@@ -60,9 +60,10 @@ final class MediaKeyTap {
 
     /// Whether the event is a press `handler` took care of, which then never reaches macOS.
     private func consumes(_ type: CGEventType, _ event: CGEvent) -> Bool {
-        // macOS turns a tap off when a callback takes too long, and on some user input. Turn it back on.
+        // macOS turns a tap off when a callback takes too long, and on some user input. Turn it back on, unless
+        // Accessibility access is gone: then the tap would stall input until HUDService removes it.
         if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
-            if let tap {
+            if let tap, AXIsProcessTrusted() {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
             return false
