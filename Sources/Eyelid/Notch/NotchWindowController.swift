@@ -288,7 +288,7 @@ extension NotchWindowController {
 
         logger.debug("Opened the clipboard history")
         model.tab = .clipboard
-        model.clipboardSelection = 0
+        model.resetClipboard()
         model.isHeldOpen = true
         open()
         takeKeyboard()
@@ -300,9 +300,9 @@ extension NotchWindowController {
         panel.allowsKey = true
         panel.makeKey()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            let keyCode = Int(event.keyCode)
+            let key = ClipboardKey(event: event)
             let isHandled = MainActor.assumeIsolated {
-                self?.handleClipboardKey(keyCode) ?? false
+                self?.handle(key) ?? false
             }
             return isHandled ? nil : event
         }
@@ -322,19 +322,41 @@ extension NotchWindowController {
         }
     }
 
-    private func handleClipboardKey(_ keyCode: Int) -> Bool {
-        switch keyCode {
-        case kVK_UpArrow:
+    private func handle(_ key: ClipboardKey) -> Bool {
+        switch key {
+        case .up:
             model.moveClipboardSelection(by: -1)
-        case kVK_DownArrow:
+        case .down:
             model.moveClipboardSelection(by: 1)
-        case kVK_Return, kVK_ANSI_KeypadEnter:
+        case .choose:
             model.chooseSelectedClipboardEntry()
-        case kVK_Delete, kVK_ForwardDelete:
+        case .remove:
             model.removeSelectedClipboardEntry()
-        case kVK_Escape:
-            close()
-        default:
+        case .togglePin:
+            model.togglePinOfSelectedClipboardEntry()
+        case .togglePreview:
+            model.showsClipboardPreview.toggle()
+        case .space:
+            if model.clipboardQuery.isEmpty {
+                model.showsClipboardPreview.toggle()
+            } else {
+                model.clipboardQuery += " "
+            }
+        case .deleteBackward:
+            guard !model.clipboardQuery.isEmpty else { return false }
+            model.clipboardQuery.removeLast()
+        case .type(let text):
+            model.clipboardQuery += text
+        case .escape:
+            // Escape steps back: out of the preview, then out of the search, then out of the history.
+            if model.showsClipboardPreview {
+                model.showsClipboardPreview = false
+            } else if !model.clipboardQuery.isEmpty {
+                model.clipboardQuery = ""
+            } else {
+                close()
+            }
+        case .other:
             return false
         }
         return true

@@ -1,48 +1,109 @@
 import SwiftUI
 
-/// The clipboard history in the open notch: a compact list, newest first.
+/// The clipboard history in the open notch: a compact list, pinned copies first, then the newest.
 struct ClipboardView: View {
     let model: NotchViewModel
 
     var body: some View {
-        let entries = model.clipboard.entries
+        let entries = model.visibleClipboardEntries
 
         VStack(spacing: 6) {
-            if entries.isEmpty {
-                ClipboardPlaceholder(access: model.clipboard.access)
+            if !model.clipboardQuery.isEmpty {
+                ClipboardSearchBar(query: model.clipboardQuery, matches: entries.count)
+            }
+
+            if model.showsClipboardPreview, let entry = model.selectedClipboardEntry {
+                ClipboardPreview(entry: entry)
+            } else if model.clipboard.entries.isEmpty {
+                ClipboardPlaceholder(message: Self.emptyMessage(for: model.clipboard.access))
+            } else if entries.isEmpty {
+                ClipboardPlaceholder(message: "No copies match “\(model.clipboardQuery)”.")
             } else {
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        LazyVStack(spacing: 2) {
-                            ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
-                                Button {
-                                    model.choose(entry)
-                                } label: {
-                                    ClipboardRow(entry: entry, isSelected: index == model.clipboardSelection)
-                                }
-                                .buttonStyle(.plain)
-                                .id(entry.id)
-                            }
-                        }
-                    }
-                    .scrollIndicators(.never)
-                    .onChange(of: model.clipboardSelection) { _, selection in
-                        guard entries.indices.contains(selection) else { return }
-                        withAnimation(.easeOut(duration: 0.15)) {
-                            proxy.scrollTo(entries[selection].id)
-                        }
-                    }
-                }
+                ClipboardList(model: model, entries: entries)
             }
 
             if model.isHeldOpen {
-                Text("↑↓ to choose  ·  ↩ to copy  ·  ⌫ to remove  ·  ⎋ to close")
+                Text(model.showsClipboardPreview
+                     ? "↑↓ next copy  ·  ↩ copy  ·  space or ⎋ back to the list"
+                     : "Type to search  ·  ↩ copy  ·  space preview  ·  ⌘P pin  ·  ⌘⌫ remove")
                     .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(.white.opacity(0.35))
+                    .lineLimit(1)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.top, 4)
+    }
+
+    private static func emptyMessage(for access: ClipboardHistory.Access) -> String {
+        switch access {
+        case .allowed:
+            "What you copy shows up here."
+        case .ask, .denied, .notAskedYet:
+            "Allow Eyelid in System Settings → Privacy & Security → Paste from Other Apps to keep what you copy."
+        }
+    }
+}
+
+private struct ClipboardList: View {
+    let model: NotchViewModel
+    let entries: [ClipboardEntry]
+
+    var body: some View {
+        ScrollViewReader { proxy in
+            ScrollView {
+                LazyVStack(spacing: 2) {
+                    ForEach(Array(entries.enumerated()), id: \.element.id) { index, entry in
+                        Button {
+                            model.choose(entry)
+                        } label: {
+                            ClipboardRow(entry: entry, isSelected: index == model.clipboardSelection)
+                        }
+                        .buttonStyle(.plain)
+                        .contextMenu {
+                            Button("Copy") { model.choose(entry) }
+                            Button(entry.isPinned ? "Unpin" : "Pin") {
+                                model.clipboard.setPinned(entry.id, !entry.isPinned)
+                            }
+                            Divider()
+                            Button("Remove") { model.clipboard.remove(entry.id) }
+                        }
+                        .id(entry.id)
+                    }
+                }
+            }
+            .scrollIndicators(.never)
+            .onChange(of: model.clipboardSelection) { _, selection in
+                guard entries.indices.contains(selection) else { return }
+                withAnimation(.easeOut(duration: 0.15)) {
+                    proxy.scrollTo(entries[selection].id)
+                }
+            }
+        }
+    }
+}
+
+private struct ClipboardSearchBar: View {
+    let query: String
+    let matches: Int
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 11, weight: .semibold))
+            Text(query)
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(.white)
+                .lineLimit(1)
+                .truncationMode(.head)
+            Spacer(minLength: 8)
+            Text(matches == 1 ? "1 copy" : "\(matches) copies")
+                .font(.system(size: 10, weight: .medium))
+        }
+        .foregroundStyle(.white.opacity(0.5))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 5)
+        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(.white.opacity(0.08)))
     }
 }
 
@@ -70,6 +131,14 @@ private struct ClipboardRow: View {
             }
 
             Spacer(minLength: 0)
+
+            if entry.isPinned {
+                Image(systemName: "pin.fill")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.white.opacity(0.45))
+                    .padding(.top, 2)
+                    .accessibilityLabel("Pinned")
+            }
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 7)
@@ -80,6 +149,65 @@ private struct ClipboardRow: View {
         )
         .contentShape(Rectangle())
         .animation(.easeOut(duration: 0.15), value: isSelected)
+    }
+}
+
+/// The selected copy in full: all of a text in a scroll view, an image as large as it fits, or every file.
+private struct ClipboardPreview: View {
+    let entry: ClipboardEntry
+
+    /// Laying out more text than this at once makes the notch stutter.
+    private static let maxCharacters = 50_000
+
+    var body: some View {
+        Group {
+            switch entry.kind {
+            case .text:
+                ScrollView {
+                    Text(text)
+                        .font(.system(size: 12))
+                        .foregroundStyle(.white.opacity(0.9))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(10)
+                }
+            case .image:
+                if let image = entry.items.first.flatMap({ $0[.png] ?? $0[.tiff] }).flatMap(NSImage.init(data:)) {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+                        .padding(8)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+            case .files:
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(entry.fileURLs, id: \.self) { url in
+                            HStack(spacing: 8) {
+                                Image(nsImage: NSWorkspace.shared.icon(forFile: url.path(percentEncoded: false)))
+                                    .resizable()
+                                    .frame(width: 20, height: 20)
+                                Text(url.path(percentEncoded: false))
+                                    .font(.system(size: 11))
+                                    .foregroundStyle(.white.opacity(0.85))
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(10)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(.white.opacity(0.06)))
+    }
+
+    private var text: String {
+        let text = entry.searchText
+        guard text.count > Self.maxCharacters else { return text }
+        return text.prefix(Self.maxCharacters) + "\n…"
     }
 }
 
@@ -112,7 +240,7 @@ private struct ClipboardIcon: View {
 }
 
 private struct ClipboardPlaceholder: View {
-    let access: ClipboardHistory.Access
+    let message: String
 
     var body: some View {
         VStack(spacing: 6) {
@@ -125,14 +253,5 @@ private struct ClipboardPlaceholder: View {
         .foregroundStyle(.white.opacity(0.5))
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.horizontal, 24)
-    }
-
-    private var message: String {
-        switch access {
-        case .allowed:
-            "What you copy shows up here."
-        case .ask, .denied, .notAskedYet:
-            "Allow Eyelid in System Settings → Privacy & Security → Paste from Other Apps to keep what you copy."
-        }
     }
 }

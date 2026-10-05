@@ -26,8 +26,9 @@ struct ClipboardSettings: View {
                     }
                 }
                 .disabled(!settings.clipboardEnabled)
+
             } footer: {
-                Text("The history stays in memory and is gone when Eyelid quits. Copies that password managers mark as concealed are left out.")
+                Text("The history stays in memory and is gone when Eyelid quits, except for pinned copies, which are saved on this Mac. Copies that password managers mark as concealed are left out.")
             }
 
             if settings.clipboardEnabled, let access, access != .allowed {
@@ -44,14 +45,19 @@ struct ClipboardSettings: View {
             }
 
             Section {
-                LabeledContent("In the history") {
+                LabeledContent {
                     HStack {
                         Text(clipboard.entries.count, format: .number)
                             .monospacedDigit()
                         Button("Clear") {
                             clipboard.removeAll()
                         }
-                        .disabled(clipboard.entries.isEmpty)
+                        .disabled(clipboard.entries.count == clipboard.pinnedCount)
+                    }
+                } label: {
+                    Text("In the history")
+                    if clipboard.pinnedCount > 0 {
+                        Text("\(clipboard.pinnedCount) pinned, which Clear keeps")
                     }
                 }
             }
