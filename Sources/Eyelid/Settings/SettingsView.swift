@@ -81,6 +81,19 @@ private struct NotchSettings: View {
                     Text("Live activity")
                     Text("Shows the artwork and an equalizer next to the notch while something plays.")
                 }
+
+                Toggle(isOn: $settings.equalizerFollowsAudio) {
+                    Text("Equalizer follows the sound")
+                    Text(AudioLevels.isSupported
+                        ? "macOS asks to allow Eyelid to record system audio, and shows the recording indicator while it listens. Eyelid only measures how loud each pitch is, and keeps nothing."
+                        : "Needs macOS 14.2 or later.")
+                }
+                .disabled(!AudioLevels.isSupported || !settings.showsLiveActivity)
+
+                Toggle(isOn: $settings.showsTrackTitle) {
+                    Text("Track title")
+                    Text("Shows the title under the notch when something starts playing, in the colors of its artwork.")
+                }
             }
         }
         .formStyle(.grouped)

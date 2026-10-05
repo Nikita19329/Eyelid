@@ -4,6 +4,7 @@ import AppKit
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
+    private lazy var audioLevels = AudioLevels(settings: settings, nowPlaying: nowPlaying)
     private let battery = BatteryService()
     private lazy var output = OutputService(settings: settings)
     let shelf = Shelf()
@@ -20,11 +21,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         terminateGracefullyOnSignals()
 
         nowPlaying.start()
+        audioLevels.start()
         battery.start()
         output.start()
         shelf.deleteUnusedPromisedFiles()
         notches = NotchCoordinator(
             nowPlaying: nowPlaying,
+            audioLevels: audioLevels,
             battery: battery,
             output: output,
             shelf: shelf,

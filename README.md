@@ -37,6 +37,8 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Any app.** Apple Music, Spotify, Yandex Music, YouTube in a browser: anything that reports to the macOS Now Playing widget.
 - **In the open notch:** artwork, title, artist, progress and playback controls.
 - **Live activity:** while something plays, the closed notch shows the artwork on one side and an equalizer on the other.
+- **Equalizer from the sound,** if you turn it on (macOS 14.2 or later): the bars follow the bass, mids and treble of what's playing rather than moving on their own. macOS asks to allow Eyelid to record system audio, and shows the recording indicator in the menu bar while it listens.
+- **Track title:** when something starts playing, the closed notch drops a lower lid, and the title and artist run along its curve from one corner to the other, in the colors of the artwork.
 
 <img src="docs/images/notch-closed.png" alt="The closed notch with artwork on its left and an equalizer on its right" width="720">
 
@@ -89,7 +91,7 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 | Tab | What's there |
 |---|---|
 | General | Launch at login, the displays that show a notch |
-| Notch | Hover delay, haptic feedback, live activity |
+| Notch | Hover delay, haptic feedback, live activity, equalizer from the sound, track title |
 | Volume & Brightness | The HUD, its level style, output changes, and an icon for each output device |
 | Battery | Battery activity |
 | Shelf | The file shelf, whether dragged-out files leave it, and a button to clear it |
@@ -149,6 +151,7 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 - **Accessibility only if you ask for it.** Eyelid requests it only when you turn on the volume and brightness HUD, and then handles only the volume, mute and brightness keys. Other keys aren't touched.
 - **The shelf doesn't read your files.** It keeps bookmarks to them in user defaults. Previews come from Quick Look, which runs in its own sandboxed process.
 - **The clipboard history is opt-in and stays in memory.** It's gone when Eyelid quits, except for copies you pin, which are saved in Eyelid's Application Support folder. Copies that password managers mark as concealed or transient aren't kept. Since macOS 15.4, macOS also asks before an app reads what other apps copy: allow Eyelid under **Privacy & Security → Paste from Other Apps**, then reopen it.
+- **The equalizer listens only if you ask it to.** With **Equalizer follows the sound** on, and only while something plays, Eyelid taps the system audio through Core Audio to measure how loud the bass, mids and treble are. Each buffer is measured in memory and dropped: nothing is recorded, kept or sent. macOS asks for permission under **Privacy & Security → Screen & System Audio Recording**, and shows the recording indicator while Eyelid listens.
 - **Settings** are stored in macOS user defaults.
 
 ## Build from source
@@ -205,7 +208,7 @@ With the volume and brightness HUD on, Eyelid holds Accessibility access: it can
 
 ## Support
 
-Eyelid is free and open source, and made in spare time. If it's useful to you, you can support my work on [Boosty](https://boosty.to/satis.ku). The first goal is an Apple Developer membership, so Eyelid can be notarized: no more Open Anyway on the first launch, and Accessibility access that survives updates.
+Eyelid is free and open source, and made in spare time. If it's useful to you, you can support my work on [Boosty](https://boosty.to/satis.ku).
 
 ## Contributing
 

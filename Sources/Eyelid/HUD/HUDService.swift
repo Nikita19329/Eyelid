@@ -1,4 +1,5 @@
 import AppKit
+import CoreAudio
 import os
 
 private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "HUD")
@@ -68,16 +69,27 @@ final class HUDService {
     private var tap: (any KeyTap)!
     private var accessTask: Task<Void, Never>?
     private var hasRequestedAccess = false
+    private let volumeWatcher: any VolumeWatching
+    /// The volume Eyelid just set for a key, which the watcher hears about too.
+    private var ownVolume: (state: SystemVolume.State, at: ContinuousClock.Instant)?
+
+    /// How long after a key the watcher's report of the same volume is taken for Eyelid's own change.
+    static let ownChangeWindow: Duration = .seconds(1)
 
     init(
         settings: AppSettings,
         access: AccessibilityAccess = AccessibilityAccess(),
-        makeTap: (@escaping @MainActor (MediaKeyPress) -> Bool) -> any KeyTap = { MediaKeyTap(handler: $0) }
+        makeTap: (@escaping @MainActor (MediaKeyPress) -> Bool) -> any KeyTap = { MediaKeyTap(handler: $0) },
+        volumeWatcher: any VolumeWatching = VolumeWatcher()
     ) {
         self.settings = settings
         self.access = access
+        self.volumeWatcher = volumeWatcher
         tap = makeTap { [weak self] press in
             self?.handle(press) ?? false
+        }
+        volumeWatcher.onChange = { [weak self] device, state in
+            self?.volumeChangedElsewhere(device, state)
         }
     }
 
@@ -88,8 +100,12 @@ final class HUDService {
 
         guard enabled else {
             tap.stop()
+            volumeWatcher.stop()
             return
         }
+        // Volume set without a key, from headphones for one, shows here too. macOS shows its own HUD for those as
+        // well, since there's no key to hold back.
+        volumeWatcher.start()
 
         if !tap.start() {
             logger.info("Waiting for Accessibility access to handle volume and brightness keys")
@@ -143,12 +159,25 @@ final class HUDService {
         let new = state.after(press.key, fine: press.isFineStep)
         guard SystemVolume.apply(new, from: state, on: device) else { return false }
 
+        ownVolume = (new, .now)
+        showVolume(new, of: device)
+        return true
+    }
+
+    /// Volume changed without a key: from headphones, Control Center or another app.
+    private func volumeChangedElsewhere(_ device: AudioDeviceID, _ state: SystemVolume.State) {
+        if let ownVolume, ownVolume.state == state, ContinuousClock.now - ownVolume.at < Self.ownChangeWindow {
+            return
+        }
+        showVolume(state, of: device)
+    }
+
+    private func showVolume(_ state: SystemVolume.State, of device: AudioDeviceID) {
         let output = OutputDevice(audioDevice: device)
         let deviceIcon = output.map(settings.icon(for:)) ?? .speaker
         let earbud = output.flatMap(HeadphonesBattery.current(for:))?.singleEarbud
-        logger.debug("Volume \(new.level, privacy: .public), muted: \(new.isMuted, privacy: .public), icon: \(deviceIcon.rawValue, privacy: .public)")
-        onEvent?(HUDEvent(kind: .volume, level: new.level, isMuted: new.isMuted, deviceIcon: deviceIcon, earbud: earbud))
-        return true
+        logger.debug("Volume \(state.level, privacy: .public), muted: \(state.isMuted, privacy: .public), icon: \(deviceIcon.rawValue, privacy: .public)")
+        onEvent?(HUDEvent(kind: .volume, level: state.level, isMuted: state.isMuted, deviceIcon: deviceIcon, earbud: earbud))
     }
 
     private func handleBrightness(_ press: MediaKeyPress) -> Bool {

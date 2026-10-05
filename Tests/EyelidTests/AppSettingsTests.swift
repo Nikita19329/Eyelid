@@ -11,6 +11,8 @@ struct AppSettingsTests {
         #expect(settings.openDelay == 0)
         #expect(settings.hapticsEnabled)
         #expect(settings.showsLiveActivity)
+        #expect(settings.showsTrackTitle)
+        #expect(!settings.equalizerFollowsAudio)
         #expect(settings.batteryActivityEnabled)
         #expect(settings.outputActivityEnabled)
         #expect(!settings.replacesSystemHUD)
@@ -30,6 +32,8 @@ struct AppSettingsTests {
         settings.openDelay = 0.25
         settings.hapticsEnabled = false
         settings.showsLiveActivity = false
+        settings.showsTrackTitle = false
+        settings.equalizerFollowsAudio = true
         settings.batteryActivityEnabled = false
         settings.outputActivityEnabled = false
         settings.replacesSystemHUD = true
@@ -47,6 +51,8 @@ struct AppSettingsTests {
         #expect(relaunched.openDelay == 0.25)
         #expect(!relaunched.hapticsEnabled)
         #expect(!relaunched.showsLiveActivity)
+        #expect(!relaunched.showsTrackTitle)
+        #expect(relaunched.equalizerFollowsAudio)
         #expect(!relaunched.batteryActivityEnabled)
         #expect(!relaunched.outputActivityEnabled)
         #expect(relaunched.replacesSystemHUD)

@@ -16,6 +16,8 @@ struct Artwork: @unchecked Sendable {
 
     /// Immutable, so safe to share between threads.
     let image: CGImage
+    /// Tints the track title under the notch. Found here, away from the main thread, once per image.
+    let color: ArtworkColor?
 
     init?(data: Data) {
         guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache: false] as CFDictionary),
@@ -33,6 +35,7 @@ struct Artwork: @unchecked Sendable {
         ]
         guard let image = CGImageSourceCreateThumbnailAtIndex(source, 0, options as CFDictionary) else { return nil }
         self.image = image
+        color = ArtworkColor.accent(of: image)
     }
 
     static func isAcceptable(width: Int, height: Int) -> Bool {

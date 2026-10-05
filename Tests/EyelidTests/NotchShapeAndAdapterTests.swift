@@ -15,13 +15,27 @@ struct NotchShapeTests {
         #expect(shape.path(in: rect).boundingRect == rect)
     }
 
-    @Test func animatesBothRadii() {
+    @Test func animatesBothRadiiAndTheLowerLid() {
         var shape = NotchShape(topCornerRadius: 6, bottomCornerRadius: 10)
 
-        shape.animatableData = AnimatablePair(14, 26)
+        shape.animatableData = AnimatablePair(AnimatablePair(14, 26), 5)
 
         #expect(shape.topCornerRadius == 14)
         #expect(shape.bottomCornerRadius == 26)
+        #expect(shape.lowerLidDepth == 5)
+    }
+
+    @Test func lowerLidCurvesLikeAnAlmond() {
+        let rect = CGRect(x: 0, y: 0, width: 281, height: 62)
+        let path = NotchShape(topCornerRadius: 6, bottomCornerRadius: 2, lowerLidDepth: 30).path(in: rect)
+        let cornerY = rect.maxY - 30
+
+        // The middle reaches the bottom, so the outline fills its frame.
+        #expect(path.boundingRect == rect)
+        #expect(path.contains(CGPoint(x: rect.midX, y: rect.maxY - 1)))
+        // By the corners, the lid has barely started to hang.
+        #expect(!path.contains(CGPoint(x: 6 + 10, y: cornerY + 14)))
+        #expect(path.contains(CGPoint(x: 6 + 10, y: cornerY - 2)))
     }
 }
 
