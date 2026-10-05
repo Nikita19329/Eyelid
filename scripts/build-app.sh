@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds build/Eyelid.app without Xcode: SwiftPM for the app, CMake for mediaremote-adapter.
+# Builds build/Eyelid.app without an Xcode project: SwiftPM for the app, CMake for mediaremote-adapter.
 #
 # Usage: scripts/build-app.sh [debug|release]   (default: release)
 set -euo pipefail
