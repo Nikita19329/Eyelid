@@ -38,14 +38,18 @@ private struct GeneralSettings: View {
             Section {
                 LaunchAtLoginToggle()
 
-                Picker(selection: $settings.displayID) {
-                    Text("Automatic").tag(CGDirectDisplayID?.none)
+                Picker(selection: $settings.notchDisplays) {
+                    Text("Automatic").tag(NotchDisplays.automatic)
+                    Text("All displays").tag(NotchDisplays.all)
+                    Divider()
                     ForEach(NSScreen.screens, id: \.self) { screen in
-                        Text(screen.localizedName).tag(screen.displayID)
+                        if let id = screen.displayID {
+                            Text(screen.localizedName).tag(NotchDisplays.display(id))
+                        }
                     }
                 } label: {
                     Text("Display")
-                    Text("Automatic uses the built-in display if it has a notch.")
+                    Text("Automatic follows the pointer from display to display. Displays without a notch get one drawn at the top.")
                 }
             }
         }

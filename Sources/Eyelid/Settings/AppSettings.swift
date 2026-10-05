@@ -16,6 +16,7 @@ final class AppSettings {
         static let hudLevelStyle = "hudLevelStyle"
         static let deviceIcons = "deviceIcons"
         static let displayID = "displayID"
+        static let notchOnAllDisplays = "notchOnAllDisplays"
         static let shelfEnabled = "shelfEnabled"
         static let shelfRemovesDraggedFiles = "shelfRemovesDraggedFiles"
         static let clipboardEnabled = "clipboardEnabled"
@@ -108,6 +109,11 @@ final class AppSettings {
         didSet { defaults.set(clipboardPastesAfterChoosing, forKey: Key.clipboardPastesAfterChoosing) }
     }
 
+    /// Whether every display shows a notch, rather than only `displayID` or the automatic choice.
+    var notchOnAllDisplays: Bool {
+        didSet { defaults.set(notchOnAllDisplays, forKey: Key.notchOnAllDisplays) }
+    }
+
     private let defaults: any SettingsStore
 
     init(defaults: any SettingsStore = UserDefaults.standard) {
@@ -122,6 +128,7 @@ final class AppSettings {
         deviceIcons = (defaults.object(forKey: Key.deviceIcons) as? [String: String] ?? [:])
             .compactMapValues(DeviceIcon.init(rawValue:))
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
+        notchOnAllDisplays = defaults.object(forKey: Key.notchOnAllDisplays) as? Bool ?? false
         shelfEnabled = defaults.object(forKey: Key.shelfEnabled) as? Bool ?? true
         shelfRemovesDraggedFiles = defaults.object(forKey: Key.shelfRemovesDraggedFiles) as? Bool ?? true
         clipboardEnabled = defaults.object(forKey: Key.clipboardEnabled) as? Bool ?? false
@@ -136,6 +143,22 @@ final class AppSettings {
 }
 
 extension AppSettings {
+    /// The display setting as one choice, as Settings offers it.
+    var notchDisplays: NotchDisplays {
+        get {
+            if notchOnAllDisplays { return .all }
+            return displayID.map(NotchDisplays.display) ?? .automatic
+        }
+        set {
+            notchOnAllDisplays = newValue == .all
+            if case .display(let id) = newValue {
+                displayID = id
+            } else if newValue == .automatic {
+                displayID = nil
+            }
+        }
+    }
+
     func icon(for device: OutputDevice) -> DeviceIcon {
         deviceIcons[device.id] ?? .automatic(for: device)
     }
