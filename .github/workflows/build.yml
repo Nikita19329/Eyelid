@@ -1,0 +1,50 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A newer push to the same branch or pull request cancels the build that is still running.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build Eyelid.app
+    # Pinned instead of macos-latest, so a new runner image can't switch the toolchain unnoticed.
+    runs-on: macos-26
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out with submodules
+        uses: actions/checkout@v7
+        with:
+          submodules: recursive
+
+      - name: Show toolchain
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
+          cmake --version | head -1
+
+      - name: Build
+        run: make app
+
+      - name: Package
+        # ditto keeps the symlinks inside MediaRemoteAdapter.framework, which an artifact upload would flatten.
+        run: ditto -c -k --keepParent build/Eyelid.app build/Eyelid.zip
+
+      - name: Upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: Eyelid-${{ github.sha }}
+          path: build/Eyelid.zip
+          retention-days: 14
+          if-no-files-found: error
