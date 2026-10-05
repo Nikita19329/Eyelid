@@ -5,6 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
     private let battery = BatteryService()
+    let shelf = Shelf()
     private lazy var hud = HUDService(settings: settings)
     private var notchController: NotchWindowController?
     private var signalSources: [DispatchSourceSignal] = []
@@ -16,7 +17,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         nowPlaying.start()
         battery.start()
-        notchController = NotchWindowController(nowPlaying: nowPlaying, battery: battery, hud: hud, settings: settings)
+        shelf.deleteUnusedPromisedFiles()
+        notchController = NotchWindowController(
+            nowPlaying: nowPlaying,
+            battery: battery,
+            shelf: shelf,
+            hud: hud,
+            settings: settings
+        )
         followHUDSetting()
     }
 

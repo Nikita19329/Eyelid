@@ -3,6 +3,7 @@ import SwiftUI
 /// Tabs, like System Settings panes in other Mac apps, so no tab grows taller than the screen.
 struct SettingsView: View {
     @Bindable var settings: AppSettings
+    let shelf: Shelf
 
     var body: some View {
         TabView {
@@ -14,6 +15,8 @@ struct SettingsView: View {
                 .tabItem { Label("Volume & Brightness", systemImage: "speaker.wave.2") }
             BatterySettings(settings: settings)
                 .tabItem { Label("Battery", systemImage: "battery.75percent") }
+            ShelfSettings(settings: settings, shelf: shelf)
+                .tabItem { Label("Shelf", systemImage: "tray") }
             AboutSettings()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
@@ -135,6 +138,44 @@ private struct BatterySettings: View {
                 Toggle(isOn: $settings.batteryActivityEnabled) {
                     Text("Battery activity")
                     Text("Shows the charge next to the notch when you plug in or unplug the charger, and when the battery drops to 20% and 10%.")
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: SettingsView.width)
+        .fixedSize()
+    }
+}
+
+private struct ShelfSettings: View {
+    @Bindable var settings: AppSettings
+    let shelf: Shelf
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: $settings.shelfEnabled) {
+                    Text("File shelf")
+                    Text("Drop files on the notch to keep them at hand, then drag them out wherever you need them. The files stay where they are.")
+                }
+
+                Toggle(isOn: $settings.shelfRemovesDraggedFiles) {
+                    Text("Remove files once they are dragged out")
+                    Text("Otherwise they stay on the shelf until you remove them.")
+                }
+                .disabled(!settings.shelfEnabled)
+            }
+
+            Section {
+                LabeledContent("On the shelf") {
+                    HStack {
+                        Text(shelf.items.count, format: .number)
+                            .monospacedDigit()
+                        Button("Clear") {
+                            shelf.removeAll()
+                        }
+                        .disabled(shelf.items.isEmpty)
+                    }
                 }
             }
         }
