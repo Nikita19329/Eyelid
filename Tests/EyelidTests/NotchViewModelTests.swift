@@ -13,7 +13,12 @@ struct NotchViewModelTests {
     )
 
     private func makeModel() -> NotchViewModel {
-        NotchViewModel(geometry: geometry, nowPlaying: NowPlayingService(), settings: AppSettings(defaults: InMemorySettingsStore()))
+        NotchViewModel(
+            geometry: geometry,
+            nowPlaying: NowPlayingService(),
+            battery: BatteryService(),
+            settings: AppSettings(defaults: InMemorySettingsStore())
+        )
     }
 
     @Test func closedNotchMatchesTheHardwareNotch() {
@@ -44,6 +49,17 @@ struct NotchViewModelTests {
 
     @Test func noLiveActivityWithoutATrack() {
         #expect(!makeModel().showsActivity)
+    }
+
+    @Test func batteryEventWidensTheClosedNotch() {
+        let model = makeModel()
+        model.settings.showsLiveActivity = false
+
+        model.batteryEvent = .pluggedIn(BatteryState(level: 80, isPluggedIn: true, isCharging: true))
+
+        #expect(model.showsActivity)
+        #expect(!model.showsNowPlayingActivity)
+        #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.activitySideWidth)
     }
 
     @Test func pointerOnTheNotchOpensIt() {
