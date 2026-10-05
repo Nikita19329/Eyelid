@@ -1,5 +1,21 @@
+import CoreAudio
 import Testing
 @testable import Eyelid
+
+/// Stands in for Core Audio's volume notifications.
+@MainActor
+final class FakeVolumeWatcher: VolumeWatching {
+    var onChange: (@MainActor (AudioDeviceID, SystemVolume.State) -> Void)?
+    var isRunning = false
+
+    func start() {
+        isRunning = true
+    }
+
+    func stop() {
+        isRunning = false
+    }
+}
 
 @MainActor
 @Suite("Accessibility access for the HUD")
@@ -44,7 +60,8 @@ struct HUDAccessTests {
                 isGranted: { permission.isGranted },
                 request: { permission.requests += 1 }
             ),
-            makeTap: { _ in tap }
+            makeTap: { _ in tap },
+            volumeWatcher: FakeVolumeWatcher()
         )
     }
 
@@ -101,5 +118,42 @@ struct HUDAccessTests {
         hud.setEnabled(false)
 
         #expect(!tap.isRunning)
+    }
+}
+
+@MainActor
+@Suite("Volume set without a key")
+struct HUDVolumeElsewhereTests {
+    private let watcher = FakeVolumeWatcher()
+    private let hud: HUDService
+
+    init() {
+        hud = HUDService(
+            settings: AppSettings(defaults: InMemorySettingsStore()),
+            access: AccessibilityAccess(isGranted: { true }, request: {}),
+            makeTap: { _ in HUDAccessTests.FakeTap(permission: HUDAccessTests.Permission()) },
+            volumeWatcher: watcher
+        )
+    }
+
+    @Test func watchesOnlyWhileTheHUDIsOn() {
+        hud.setEnabled(true)
+        #expect(watcher.isRunning)
+
+        hud.setEnabled(false)
+        #expect(!watcher.isRunning)
+    }
+
+    @Test func showsVolumeFromHeadphonesToo() {
+        var events: [HUDEvent] = []
+        hud.onEvent = { events.append($0) }
+        hud.setEnabled(true)
+
+        watcher.onChange?(AudioDeviceID(kAudioObjectUnknown), SystemVolume.State(level: 0.4, isMuted: false))
+        watcher.onChange?(AudioDeviceID(kAudioObjectUnknown), SystemVolume.State(level: 0.4, isMuted: true))
+
+        #expect(events.map(\.kind) == [.volume, .volume])
+        #expect(events.map(\.level) == [0.4, 0.4])
+        #expect(events.map(\.isMuted) == [false, true])
     }
 }
