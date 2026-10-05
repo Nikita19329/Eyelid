@@ -11,7 +11,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotKeys = HotKeyCenter()
     private(set) lazy var clipboardShortcut = ClipboardShortcut(center: hotKeys, settings: settings)
     private lazy var hud = HUDService(settings: settings)
-    private var notchController: NotchWindowController?
+    private var notches: NotchCoordinator?
     private var signalSources: [DispatchSourceSignal] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -23,7 +23,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         battery.start()
         output.start()
         shelf.deleteUnusedPromisedFiles()
-        notchController = NotchWindowController(
+        notches = NotchCoordinator(
             nowPlaying: nowPlaying,
             battery: battery,
             output: output,
