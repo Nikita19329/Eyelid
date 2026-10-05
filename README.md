@@ -47,6 +47,9 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Fine steps.** Option-Shift changes the level in quarter steps, as in macOS.
 - **Off by default,** since handling the keys needs Accessibility access. See [Volume and brightness HUD](#volume-and-brightness-hud).
 
+- **Output changes.** When sound switches to other speakers or headphones, the notch shows them for a moment. AirPods and Beats come with their charge in a ring, as on iPhone. With one earbud in, it shows on its own side of the notch and its charge on the other, and putting the second one in or taking one out shows the change. Other outputs show their volume.
+- **The earbuds in use** show in the volume HUD too: one AirPod, or the pair.
+
 <img src="docs/images/hud-styles.png" alt="The five level styles for AirPods, the MacBook speakers and brightness" width="560">
 
 ### Battery
@@ -54,7 +57,6 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Charging and unplugging.** Plugging in or unplugging the charger shows the charge beside the notch for a few seconds, green while charging.
 - **Low battery warnings** at 20% and 10%.
 - **Battery level** in the open notch.
-- **Headphones.** Connecting AirPods or other Bluetooth headphones shows them beside the notch for a moment, with the charge of AirPods and Beats in a ring, as on iPhone. With one earbud in, it shows on its own side of the notch, and its charge on the other. Putting the second one in or taking one out shows the change, and the volume HUD shows the earbuds in use too.
 
 ### File shelf
 
@@ -85,8 +87,8 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 |---|---|
 | General | Launch at login, the display that shows the notch |
 | Notch | Hover delay, haptic feedback, live activity |
-| Volume & Brightness | The HUD, its level style, and an icon for each output device |
-| Battery | Battery activity, headphones |
+| Volume & Brightness | The HUD, its level style, output changes, and an icon for each output device |
+| Battery | Battery activity |
 | Shelf | The file shelf, whether dragged-out files leave it, and a button to clear it |
 | Clipboard | The clipboard history, its shortcut, pasting right away, and a button to clear it |
 
@@ -180,7 +182,7 @@ make run
 
 **Battery.** IOKit's power source notifications report every change, and Eyelid turns them into plug, unplug and low battery events.
 
-**Headphones.** A CoreAudio listener notices a new Bluetooth output. macOS keeps the charge of AirPods and Beats, earbud by earbud and the case, as IOKit power sources for its Batteries widget. The public IOKit call only lists the Mac's own battery, so Eyelid looks up the private one that lists accessories, which needs no Bluetooth permission. An earbud in the case runs on the case's power, which tells which one is in use, and IOKit posts a notification when that changes.
+**Output changes.** A CoreAudio listener notices the default output switching. macOS keeps the charge of AirPods and Beats, earbud by earbud and the case, as IOKit power sources for its Batteries widget. The public IOKit call only lists the Mac's own battery, so Eyelid looks up the private one that lists accessories, which needs no Bluetooth permission. An earbud in the case runs on the case's power, which tells which one is in use, and IOKit posts a notification when that changes.
 
 **Clipboard history.** macOS has no notification for copies, so Eyelid checks the pasteboard's change count twice a second and reads the pasteboard only after it changes. It keeps plain text, rich text, HTML, links, files and images, and puts them all back when you choose a copy. The shortcut is a Carbon hot key, which needs no permission. While the history is open, the notch's panel takes the keyboard without activating Eyelid, the way Spotlight does, so the app in front stays in front and gets the keyboard back when the history closes. **Paste right away** then presses ⌘V for you, which needs Accessibility access.
 
@@ -245,7 +247,7 @@ Sources/Eyelid/
   NowPlaying/   mediaremote-adapter client, now playing model, artwork, views
   Battery/      IOKit battery reading, battery events and views
   HUD/          Media key tap, volume (CoreAudio), brightness (DisplayServices), device icons, HUD view
-  Headphones/   Headphone connections and their charge (IOKit accessory power sources), views
+  Output/       Output switches, headphone charge and earbuds in use (IOKit accessory power sources), views
   Shelf/        File shelf: bookmarks, drops and file promises, dragging out, views
   Clipboard/    Clipboard history, keyboard shortcuts (Carbon hot keys), pasting, views
   Settings/     Preferences, Settings window, launch at login
