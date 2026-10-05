@@ -61,14 +61,30 @@ After `make app` has run once, `swift run` from the repository root works too, w
 
 The version comes from git: builds show the latest `vX.Y.Z` tag and the commit count as the build number. `UNIVERSAL=1 make app` builds for both Apple silicon and Intel.
 
-## Releasing
+## Branches and releases
 
-Push a version tag:
+- **`main`** is the latest release.
+- **`develop`** collects finished work for the next release. It is the default branch, so pull requests target it.
+- **Every feature or fix** gets its own short-lived branch, such as `feat/battery`, merged into `develop` through a pull request.
 
-```sh
-git tag -a v0.2.0 -m "Eyelid 0.2.0"
-git push origin v0.2.0
-```
+To release:
+
+1. Open a pull request from `develop` to `main` titled `Release X.Y.Z`. Merge it with a merge commit once the checks pass.
+2. Tag the merge commit on `main`:
+
+   ```sh
+   git switch main && git pull
+   git tag -a v0.2.0 -m "Eyelid 0.2.0"
+   git push origin v0.2.0
+   ```
+
+3. Bring the release back into `develop`, so development builds pick up the new version:
+
+   ```sh
+   git switch develop && git pull
+   git merge main
+   git push
+   ```
 
 The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version and the signature. Then it publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
 
@@ -106,9 +122,9 @@ Vendor/         mediaremote-adapter (git submodule)
 
 ## Contributing
 
-Issues and pull requests are welcome. For anything bigger than a small fix, please open an issue first so we can agree on the approach.
+Issues and pull requests are welcome. For anything bigger than a small fix, please open an issue first so we can agree on the approach. Branch off `develop` and open your pull request against it.
 
-GitHub Actions builds and tests every pull request and every push to `main` on macOS 26 with the runner's default Xcode. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
+GitHub Actions builds and tests every pull request and every push to `main` and `develop` on macOS 26 with the runner's default Xcode. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
 
 The tests cover what can be checked without a screen: decoding the adapter's output, playback time, notch layout and hover areas, and settings. Behavior on screen, such as hovering, haptics and the look of the notch, still needs a try on a real Mac. Mention what you checked in your pull request.
 
