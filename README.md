@@ -54,7 +54,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Charging and unplugging.** Plugging in or unplugging the charger shows the charge beside the notch for a few seconds, green while charging.
 - **Low battery warnings** at 20% and 10%.
 - **Battery level** in the open notch.
-- **Headphones.** Connecting AirPods or other Bluetooth headphones shows them beside the notch for a moment, with the charge of AirPods and Beats in a ring, as on iPhone. With one earbud in, it shows on its own side of the notch, and its charge on the other.
+- **Headphones.** Connecting AirPods or other Bluetooth headphones shows them beside the notch for a moment, with the charge of AirPods and Beats in a ring, as on iPhone. With one earbud in, it shows on its own side of the notch, and its charge on the other. Putting the second one in or taking one out shows the change, and the volume HUD shows the earbuds in use too.
 
 ### File shelf
 
@@ -180,7 +180,7 @@ make run
 
 **Battery.** IOKit's power source notifications report every change, and Eyelid turns them into plug, unplug and low battery events.
 
-**Headphones.** A CoreAudio listener notices a new Bluetooth output. macOS keeps the charge of AirPods and Beats, earbud by earbud and the case, as IOKit power sources for its Batteries widget. The public IOKit call only lists the Mac's own battery, so Eyelid looks up the private one that lists accessories, which needs no Bluetooth permission. An earbud in the case runs on the case's power, which tells which one is in use.
+**Headphones.** A CoreAudio listener notices a new Bluetooth output. macOS keeps the charge of AirPods and Beats, earbud by earbud and the case, as IOKit power sources for its Batteries widget. The public IOKit call only lists the Mac's own battery, so Eyelid looks up the private one that lists accessories, which needs no Bluetooth permission. An earbud in the case runs on the case's power, which tells which one is in use, and IOKit posts a notification when that changes.
 
 **Clipboard history.** macOS has no notification for copies, so Eyelid checks the pasteboard's change count twice a second and reads the pasteboard only after it changes. It keeps plain text, rich text, HTML, links, files and images, and puts them all back when you choose a copy. The shortcut is a Carbon hot key, which needs no permission. While the history is open, the notch's panel takes the keyboard without activating Eyelid, the way Spotlight does, so the app in front stays in front and gets the keyboard back when the history closes. **Paste right away** then presses ⌘V for you, which needs Accessibility access.
 
