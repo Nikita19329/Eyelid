@@ -12,6 +12,7 @@ struct AppSettingsTests {
         #expect(settings.hapticsEnabled)
         #expect(settings.showsLiveActivity)
         #expect(settings.batteryActivityEnabled)
+        #expect(!settings.replacesSystemHUD)
         #expect(settings.displayID == nil)
     }
 
@@ -22,6 +23,7 @@ struct AppSettingsTests {
         settings.hapticsEnabled = false
         settings.showsLiveActivity = false
         settings.batteryActivityEnabled = false
+        settings.replacesSystemHUD = true
         settings.displayID = 42
 
         let relaunched = AppSettings(defaults: store)
@@ -30,6 +32,7 @@ struct AppSettingsTests {
         #expect(!relaunched.hapticsEnabled)
         #expect(!relaunched.showsLiveActivity)
         #expect(!relaunched.batteryActivityEnabled)
+        #expect(relaunched.replacesSystemHUD)
         #expect(relaunched.displayID == 42)
     }
 

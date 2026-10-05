@@ -38,6 +38,10 @@ struct SettingsView: View {
                 }
             }
 
+            Section("Volume and brightness") {
+                SystemHUDSettings(settings: settings)
+            }
+
             Section("Battery") {
                 Toggle(isOn: $settings.batteryActivityEnabled) {
                     Text("Battery activity")

@@ -11,6 +11,7 @@ final class AppSettings {
         static let hapticsEnabled = "hapticsEnabled"
         static let showsLiveActivity = "showsLiveActivity"
         static let batteryActivityEnabled = "batteryActivityEnabled"
+        static let replacesSystemHUD = "replacesSystemHUD"
         static let displayID = "displayID"
     }
 
@@ -36,6 +37,12 @@ final class AppSettings {
         didSet { defaults.set(batteryActivityEnabled, forKey: Key.batteryActivityEnabled) }
     }
 
+    /// Whether Eyelid handles the volume and brightness keys and shows the change next to the notch
+    /// instead of the system HUD. Off by default, since it needs Accessibility access.
+    var replacesSystemHUD: Bool {
+        didSet { defaults.set(replacesSystemHUD, forKey: Key.replacesSystemHUD) }
+    }
+
     /// The display that shows the notch, or nil to pick one automatically.
     var displayID: CGDirectDisplayID? {
         didSet {
@@ -55,6 +62,7 @@ final class AppSettings {
         hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
         showsLiveActivity = defaults.object(forKey: Key.showsLiveActivity) as? Bool ?? true
         batteryActivityEnabled = defaults.object(forKey: Key.batteryActivityEnabled) as? Bool ?? true
+        replacesSystemHUD = defaults.object(forKey: Key.replacesSystemHUD) as? Bool ?? false
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
     }
 }
