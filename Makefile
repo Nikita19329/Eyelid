@@ -9,7 +9,8 @@ debug:
 run: app
 	-pkill -x Eyelid
 	@while pgrep -x Eyelid >/dev/null; do sleep 0.1; done
-	open build/Eyelid.app
+	@# -n: Launch Services may still list the old instance for a moment and fail with error -600.
+	open -n build/Eyelid.app
 
 clean:
 	rm -rf .build build
