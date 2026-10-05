@@ -32,12 +32,15 @@ struct MediaRemoteAdapter: Sendable {
             ))
         }
 
-        // `swift run` from the repository root, once `make app` has built the framework.
+        #if DEBUG
+        // `swift run` from the repository root, once `make app` has built the framework. Release builds
+        // never run code from the working directory, which anyone launching the app could pick.
         let root = URL(filePath: FileManager.default.currentDirectoryPath)
         candidates.append(MediaRemoteAdapter(
             script: root.appending(path: "Vendor/mediaremote-adapter/bin/mediaremote-adapter.pl"),
             framework: root.appending(path: ".build/adapter/MediaRemoteAdapter.framework")
         ))
+        #endif
 
         let fileManager = FileManager.default
         return candidates.first {
@@ -49,8 +52,13 @@ struct MediaRemoteAdapter: Sendable {
         let process = Process()
         process.executableURL = URL(filePath: "/usr/bin/perl")
         process.arguments = [script.path, framework.path] + arguments
+        // Perl runs extra code named in PERL5OPT and PERL5LIB, and macOS treats Eyelid as responsible for
+        // its child processes. So perl doesn't inherit Eyelid's environment, only what it needs.
+        process.environment = Self.environment
         return process
     }
+
+    static let environment = ["PATH": "/usr/bin:/bin"]
 
     func send(_ command: Command) {
         Task.detached(priority: .userInitiated) {
