@@ -16,7 +16,11 @@ struct SettingsView: View {
                     }
                 }
 
-                Toggle("Haptic feedback when opening", isOn: $settings.hapticsEnabled)
+                Toggle(isOn: $settings.hapticsEnabled) {
+                    Text("Haptic feedback when opening")
+                    // macOS drops the feedback otherwise, which is easy to hit with an open delay.
+                    Text("Plays only while your finger is on the trackpad.")
+                }
 
                 Toggle(isOn: $settings.showsLiveActivity) {
                     Text("Live activity")
