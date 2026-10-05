@@ -4,33 +4,33 @@ import os
 
 private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Notch")
 
-/// Owns the notch panel: keeps it pinned to the notch and opens or closes it as the cursor moves.
+/// Owns the notch panel of one display: keeps it pinned to the notch and opens or closes it as the cursor moves.
 @MainActor
 final class NotchWindowController {
     private let panel = NotchPanel()
     private let model: NotchViewModel
     private let settings: AppSettings
     private var mouseMonitors: [Any] = []
+    private var observers: [NSObjectProtocol] = []
     private var openTask: Task<Void, Never>?
     private var pollTask: Task<Void, Never>?
     private var batteryEventTask: Task<Void, Never>?
     private var hudTask: Task<Void, Never>?
+    private var outputTask: Task<Void, Never>?
     /// The drag pasteboard changes when a drag starts, which tells drags apart from other mouse moves.
     private var dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
     /// Handles the arrow keys, Return, Delete and Escape while the clipboard history has the keyboard.
     private var keyMonitor: Any?
 
     init(
+        screen: NSScreen,
         nowPlaying: NowPlayingService,
         battery: BatteryService,
         shelf: Shelf,
         clipboard: ClipboardHistory,
-        clipboardShortcut: ClipboardShortcut,
-        hud: HUDService,
         settings: AppSettings
     ) {
         self.settings = settings
-        let screen = NotchGeometry.preferredScreen(displayID: settings.displayID) ?? NSScreen.screens[0]
         model = NotchViewModel(
             geometry: NotchGeometry(screen: screen),
             nowPlaying: nowPlaying,
@@ -50,56 +50,62 @@ final class NotchWindowController {
         panel.orderFrontRegardless()
 
         installMouseMonitors()
-        observeDisplayPreference()
-        battery.onEvent = { [weak self] event in
-            self?.show(event)
-        }
-        hud.onEvent = { [weak self] event in
-            self?.show(event)
-        }
-        clipboardShortcut.onPress = { [weak self] in
-            self?.toggleClipboard()
-        }
         model.close = { [weak self] in
             self?.close()
         }
-        // Clicking another window takes the keyboard away from the clipboard history, which then goes away.
-        NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) {
-            [weak self] _ in
-            MainActor.assumeIsolated {
-                if self?.model.isPinned == true {
-                    self?.close()
-                }
-            }
+        model.pasteIntoFrontApp = {
+            Paster.paste()
         }
-        NotificationCenter.default.addObserver(
-            forName: NSApplication.didChangeScreenParametersNotification,
-            object: nil,
+        // Clicking another window takes the keyboard away from the clipboard history, which then goes away.
+        observers.append(NotificationCenter.default.addObserver(
+            forName: NSWindow.didResignKeyNotification,
+            object: panel,
             queue: .main
         ) { [weak self] _ in
             MainActor.assumeIsolated {
-                self?.updateScreen()
+                if self?.model.isHeldOpen == true {
+                    self?.close()
+                }
             }
+        })
+    }
+
+    /// Takes the panel down for good, when its display goes away or no longer shows a notch.
+    func invalidate() {
+        if model.isHeldOpen {
+            close()
         }
+        for monitor in mouseMonitors {
+            NSEvent.removeMonitor(monitor)
+        }
+        mouseMonitors = []
+        for observer in observers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        observers = []
+        for task in [openTask, pollTask, batteryEventTask, hudTask, outputTask] {
+            task?.cancel()
+        }
+        panel.orderOut(nil)
     }
 
     // MARK: - Placement
 
-    private func observeDisplayPreference() {
-        withObservationTracking {
-            _ = settings.displayID
-        } onChange: { [weak self] in
-            // `onChange` runs before the new value is stored, so read it on the next turn of the main actor.
-            Task { @MainActor in
-                self?.updateScreen()
-                self?.observeDisplayPreference()
-            }
-        }
+    /// The display this notch is on.
+    var displayID: CGDirectDisplayID? {
+        model.geometry.displayID
     }
 
-    private func updateScreen() {
-        guard let screen = NotchGeometry.preferredScreen(displayID: settings.displayID) else { return }
-        model.geometry = NotchGeometry(screen: screen)
+    /// The whole display this notch is on, in global coordinates.
+    var screenFrame: CGRect {
+        model.geometry.screenFrame
+    }
+
+    /// Follows the display when its size or arrangement changes.
+    func move(to screen: NSScreen) {
+        let geometry = NotchGeometry(screen: screen)
+        guard geometry != model.geometry else { return }
+        model.geometry = geometry
         updateFrame()
     }
 
@@ -117,7 +123,7 @@ final class NotchWindowController {
 
     // MARK: - Volume and brightness
 
-    private func show(_ event: HUDEvent) {
+    func show(_ event: HUDEvent) {
         model.hud = event
         // Holding a key repeats it, so the HUD stays until the last press plus the duration.
         hudTask?.cancel()
@@ -130,7 +136,7 @@ final class NotchWindowController {
 
     // MARK: - Battery
 
-    private func show(_ event: BatteryEvent) {
+    func show(_ event: BatteryEvent) {
         logger.debug("Battery event: \(String(describing: event), privacy: .public)")
         guard settings.batteryActivityEnabled else { return }
 
@@ -140,6 +146,18 @@ final class NotchWindowController {
             try? await Task.sleep(for: .seconds(NotchViewModel.Layout.batteryEventDuration))
             guard !Task.isCancelled else { return }
             self?.model.batteryEvent = nil
+        }
+    }
+
+    // MARK: - Sound output
+
+    func show(_ event: OutputEvent) {
+        model.output = event
+        outputTask?.cancel()
+        outputTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(NotchViewModel.Layout.outputEventDuration))
+            guard !Task.isCancelled else { return }
+            self?.model.output = nil
         }
     }
 
@@ -174,7 +192,7 @@ final class NotchWindowController {
         case .leftMouseDown:
             dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
             // A click anywhere else puts away the clipboard history, as with a menu.
-            if model.isPinned, !model.bodyRect.contains(NSEvent.mouseLocation) {
+            if model.isHeldOpen, !model.bodyRect.contains(NSEvent.mouseLocation) {
                 close()
             }
         case .leftMouseDragged:
@@ -210,7 +228,7 @@ final class NotchWindowController {
             openTask?.cancel()
             openTask = nil
         case (.open, false):
-            if !model.isPinned {
+            if !model.isHeldOpen {
                 close()
             }
         case (.open, true):
@@ -262,10 +280,10 @@ final class NotchWindowController {
 
     private func close() {
         logger.debug("Closed")
-        let wasPinned = model.isPinned
+        let wasPinned = model.isHeldOpen
         model.state = .closed
         model.isDropTargeted = false
-        model.isPinned = false
+        model.isHeldOpen = false
         if wasPinned {
             giveUpKeyboard()
         }
@@ -278,9 +296,19 @@ final class NotchWindowController {
 // MARK: - Clipboard
 
 extension NotchWindowController {
+    /// Whether the notch is open, for hover, a drag or the clipboard history.
+    var isOpen: Bool {
+        model.state == .open
+    }
+
+    /// Whether the clipboard history is open and holding the notch open.
+    var isHoldingClipboardOpen: Bool {
+        model.isHeldOpen
+    }
+
     /// The clipboard shortcut opens the history, wherever the pointer is, and closes it again.
-    private func toggleClipboard() {
-        if model.isPinned {
+    func toggleClipboard() {
+        if model.isHeldOpen {
             close()
             return
         }
@@ -288,8 +316,8 @@ extension NotchWindowController {
 
         logger.debug("Opened the clipboard history")
         model.tab = .clipboard
-        model.clipboardSelection = 0
-        model.isPinned = true
+        model.resetClipboard()
+        model.isHeldOpen = true
         open()
         takeKeyboard()
     }
@@ -300,9 +328,9 @@ extension NotchWindowController {
         panel.allowsKey = true
         panel.makeKey()
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            let keyCode = Int(event.keyCode)
+            let key = ClipboardKey(event: event)
             let isHandled = MainActor.assumeIsolated {
-                self?.handleClipboardKey(keyCode) ?? false
+                self?.handle(key) ?? false
             }
             return isHandled ? nil : event
         }
@@ -322,19 +350,41 @@ extension NotchWindowController {
         }
     }
 
-    private func handleClipboardKey(_ keyCode: Int) -> Bool {
-        switch keyCode {
-        case kVK_UpArrow:
+    private func handle(_ key: ClipboardKey) -> Bool {
+        switch key {
+        case .up:
             model.moveClipboardSelection(by: -1)
-        case kVK_DownArrow:
+        case .down:
             model.moveClipboardSelection(by: 1)
-        case kVK_Return, kVK_ANSI_KeypadEnter:
+        case .choose:
             model.chooseSelectedClipboardEntry()
-        case kVK_Delete, kVK_ForwardDelete:
+        case .remove:
             model.removeSelectedClipboardEntry()
-        case kVK_Escape:
-            close()
-        default:
+        case .togglePin:
+            model.togglePinOfSelectedClipboardEntry()
+        case .togglePreview:
+            model.showsClipboardPreview.toggle()
+        case .space:
+            if model.clipboardQuery.isEmpty {
+                model.showsClipboardPreview.toggle()
+            } else {
+                model.clipboardQuery += " "
+            }
+        case .deleteBackward:
+            guard !model.clipboardQuery.isEmpty else { return false }
+            model.clipboardQuery.removeLast()
+        case .type(let text):
+            model.clipboardQuery += text
+        case .escape:
+            // Escape steps back: out of the preview, then out of the search, then out of the history.
+            if model.showsClipboardPreview {
+                model.showsClipboardPreview = false
+            } else if !model.clipboardQuery.isEmpty {
+                model.clipboardQuery = ""
+            } else {
+                close()
+            }
+        case .other:
             return false
         }
         return true

@@ -11,14 +11,17 @@ final class AppSettings {
         static let hapticsEnabled = "hapticsEnabled"
         static let showsLiveActivity = "showsLiveActivity"
         static let batteryActivityEnabled = "batteryActivityEnabled"
+        static let outputActivityEnabled = "outputActivityEnabled"
         static let replacesSystemHUD = "replacesSystemHUD"
         static let hudLevelStyle = "hudLevelStyle"
         static let deviceIcons = "deviceIcons"
         static let displayID = "displayID"
+        static let notchOnAllDisplays = "notchOnAllDisplays"
         static let shelfEnabled = "shelfEnabled"
         static let shelfRemovesDraggedFiles = "shelfRemovesDraggedFiles"
         static let clipboardEnabled = "clipboardEnabled"
         static let clipboardHotKey = "clipboardHotKey"
+        static let clipboardPastesAfterChoosing = "clipboardPastesAfterChoosing"
     }
 
     /// Delays offered in Settings, in seconds.
@@ -41,6 +44,12 @@ final class AppSettings {
     /// Whether plugging in, unplugging and a low battery briefly show the charge next to the notch.
     var batteryActivityEnabled: Bool {
         didSet { defaults.set(batteryActivityEnabled, forKey: Key.batteryActivityEnabled) }
+    }
+
+    /// Whether a switch of the sound output briefly shows the new one next to the notch: AirPods and Beats with their
+    /// charge and the earbuds in use, others with their volume.
+    var outputActivityEnabled: Bool {
+        didSet { defaults.set(outputActivityEnabled, forKey: Key.outputActivityEnabled) }
     }
 
     /// Whether Eyelid handles the volume and brightness keys and shows the change next to the notch
@@ -95,6 +104,16 @@ final class AppSettings {
         }
     }
 
+    /// Whether choosing a copy also pastes it into the app in front. Needs Accessibility access to press ⌘V.
+    var clipboardPastesAfterChoosing: Bool {
+        didSet { defaults.set(clipboardPastesAfterChoosing, forKey: Key.clipboardPastesAfterChoosing) }
+    }
+
+    /// Whether every display shows a notch, rather than only `displayID` or the automatic choice.
+    var notchOnAllDisplays: Bool {
+        didSet { defaults.set(notchOnAllDisplays, forKey: Key.notchOnAllDisplays) }
+    }
+
     private let defaults: any SettingsStore
 
     init(defaults: any SettingsStore = UserDefaults.standard) {
@@ -103,14 +122,17 @@ final class AppSettings {
         hapticsEnabled = defaults.object(forKey: Key.hapticsEnabled) as? Bool ?? true
         showsLiveActivity = defaults.object(forKey: Key.showsLiveActivity) as? Bool ?? true
         batteryActivityEnabled = defaults.object(forKey: Key.batteryActivityEnabled) as? Bool ?? true
+        outputActivityEnabled = defaults.object(forKey: Key.outputActivityEnabled) as? Bool ?? true
         replacesSystemHUD = defaults.object(forKey: Key.replacesSystemHUD) as? Bool ?? false
         hudLevelStyle = (defaults.object(forKey: Key.hudLevelStyle) as? String).flatMap(LevelStyle.init(rawValue:)) ?? .bar
         deviceIcons = (defaults.object(forKey: Key.deviceIcons) as? [String: String] ?? [:])
             .compactMapValues(DeviceIcon.init(rawValue:))
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
+        notchOnAllDisplays = defaults.object(forKey: Key.notchOnAllDisplays) as? Bool ?? false
         shelfEnabled = defaults.object(forKey: Key.shelfEnabled) as? Bool ?? true
         shelfRemovesDraggedFiles = defaults.object(forKey: Key.shelfRemovesDraggedFiles) as? Bool ?? true
         clipboardEnabled = defaults.object(forKey: Key.clipboardEnabled) as? Bool ?? false
+        clipboardPastesAfterChoosing = defaults.object(forKey: Key.clipboardPastesAfterChoosing) as? Bool ?? false
         if let stored = defaults.object(forKey: Key.clipboardHotKey) as? [String: Int],
            let keyCode = stored["keyCode"], let modifiers = stored["modifiers"] {
             clipboardHotKey = HotKey(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers))
@@ -121,6 +143,22 @@ final class AppSettings {
 }
 
 extension AppSettings {
+    /// The display setting as one choice, as Settings offers it.
+    var notchDisplays: NotchDisplays {
+        get {
+            if notchOnAllDisplays { return .all }
+            return displayID.map(NotchDisplays.display) ?? .automatic
+        }
+        set {
+            notchOnAllDisplays = newValue == .all
+            if case .display(let id) = newValue {
+                displayID = id
+            } else if newValue == .automatic {
+                displayID = nil
+            }
+        }
+    }
+
     func icon(for device: OutputDevice) -> DeviceIcon {
         deviceIcons[device.id] ?? .automatic(for: device)
     }

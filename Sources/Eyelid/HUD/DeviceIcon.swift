@@ -112,3 +112,19 @@ enum DeviceIcon: String, CaseIterable, Sendable {
         0x200A: .airpodsMax,
     ]
 }
+
+extension DeviceIcon {
+    /// One earbud of the pair, for when only that one is in use. Nil for headphones that aren't earbuds.
+    func earbudSymbolName(_ earbud: HeadphonesBattery.Earbud) -> String? {
+        let side = earbud == .left ? "left" : "right"
+        let name: String? = switch self {
+        case .airpods: "airpod.\(side)"
+        // AirPods 4 have the shape of the third generation, and no symbols of their own for one earbud.
+        case .airpods3, .airpods4: "airpod.gen3.\(side)"
+        case .airpodsPro: "airpodpro.\(side)"
+        case .beatsEarbuds: "beats.studiobud.\(side)"
+        default: nil
+        }
+        return name.flatMap { NSImage(systemSymbolName: $0, accessibilityDescription: nil) == nil ? nil : $0 }
+    }
+}

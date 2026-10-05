@@ -5,12 +5,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
     private let battery = BatteryService()
+    private lazy var output = OutputService(settings: settings)
     let shelf = Shelf()
-    let clipboard = ClipboardHistory()
+    let clipboard = ClipboardHistory(pinnedFile: ClipboardHistory.defaultPinnedFile)
     private let hotKeys = HotKeyCenter()
     private(set) lazy var clipboardShortcut = ClipboardShortcut(center: hotKeys, settings: settings)
     private lazy var hud = HUDService(settings: settings)
-    private var notchController: NotchWindowController?
+    private var notches: NotchCoordinator?
     private var signalSources: [DispatchSourceSignal] = []
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -20,10 +21,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         nowPlaying.start()
         battery.start()
+        output.start()
         shelf.deleteUnusedPromisedFiles()
-        notchController = NotchWindowController(
+        notches = NotchCoordinator(
             nowPlaying: nowPlaying,
             battery: battery,
+            output: output,
             shelf: shelf,
             clipboard: clipboard,
             clipboardShortcut: clipboardShortcut,

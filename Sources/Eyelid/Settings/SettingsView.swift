@@ -38,14 +38,18 @@ private struct GeneralSettings: View {
             Section {
                 LaunchAtLoginToggle()
 
-                Picker(selection: $settings.displayID) {
-                    Text("Automatic").tag(CGDirectDisplayID?.none)
+                Picker(selection: $settings.notchDisplays) {
+                    Text("Automatic").tag(NotchDisplays.automatic)
+                    Text("All displays").tag(NotchDisplays.all)
+                    Divider()
                     ForEach(NSScreen.screens, id: \.self) { screen in
-                        Text(screen.localizedName).tag(screen.displayID)
+                        if let id = screen.displayID {
+                            Text(screen.localizedName).tag(NotchDisplays.display(id))
+                        }
                     }
                 } label: {
                     Text("Display")
-                    Text("Automatic uses the built-in display if it has a notch.")
+                    Text("Automatic follows the pointer from display to display. Displays without a notch get one drawn at the top.")
                 }
             }
         }
@@ -106,13 +110,20 @@ private struct VolumeAndBrightnessSettings: View {
                 SystemHUDSettings(settings: settings)
             }
 
-            if settings.replacesSystemHUD {
+            Section {
+                Toggle(isOn: $settings.outputActivityEnabled) {
+                    Text("Output changes")
+                    Text("When sound switches to other speakers or headphones, shows them next to the notch: AirPods and Beats with their charge and the earbuds in use, others with their volume.")
+                }
+            }
+
+            if settings.replacesSystemHUD || settings.outputActivityEnabled {
                 Section {
                     OutputDeviceIconSettings(settings: settings, devices: devices)
                 } header: {
                     Text("Output devices")
                 } footer: {
-                    Text("The icon the volume HUD shows for each device. macOS knows AirPods and Beats, but other Bluetooth devices all look like headphones to it.")
+                    Text("The icon the notch shows for each device. macOS knows AirPods and Beats, but other Bluetooth devices all look like headphones to it.")
                 }
             }
         }

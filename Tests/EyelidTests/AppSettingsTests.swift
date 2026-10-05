@@ -12,6 +12,7 @@ struct AppSettingsTests {
         #expect(settings.hapticsEnabled)
         #expect(settings.showsLiveActivity)
         #expect(settings.batteryActivityEnabled)
+        #expect(settings.outputActivityEnabled)
         #expect(!settings.replacesSystemHUD)
         #expect(settings.hudLevelStyle == .bar)
         #expect(settings.deviceIcons.isEmpty)
@@ -20,6 +21,7 @@ struct AppSettingsTests {
         #expect(settings.shelfRemovesDraggedFiles)
         #expect(!settings.clipboardEnabled)
         #expect(settings.clipboardHotKey == .clipboardDefault)
+        #expect(!settings.clipboardPastesAfterChoosing)
     }
 
     @Test func changesSurviveARelaunch() {
@@ -29,6 +31,7 @@ struct AppSettingsTests {
         settings.hapticsEnabled = false
         settings.showsLiveActivity = false
         settings.batteryActivityEnabled = false
+        settings.outputActivityEnabled = false
         settings.replacesSystemHUD = true
         settings.hudLevelStyle = .segments
         settings.deviceIcons = ["headset-uid": .headset]
@@ -37,6 +40,7 @@ struct AppSettingsTests {
         settings.shelfRemovesDraggedFiles = false
         settings.clipboardEnabled = true
         settings.clipboardHotKey = HotKey(keyCode: 9, modifiers: 2048 | 256)
+        settings.clipboardPastesAfterChoosing = true
 
         let relaunched = AppSettings(defaults: store)
 
@@ -44,6 +48,7 @@ struct AppSettingsTests {
         #expect(!relaunched.hapticsEnabled)
         #expect(!relaunched.showsLiveActivity)
         #expect(!relaunched.batteryActivityEnabled)
+        #expect(!relaunched.outputActivityEnabled)
         #expect(relaunched.replacesSystemHUD)
         #expect(relaunched.hudLevelStyle == .segments)
         #expect(relaunched.deviceIcons == ["headset-uid": .headset])
@@ -52,6 +57,7 @@ struct AppSettingsTests {
         #expect(!relaunched.shelfRemovesDraggedFiles)
         #expect(relaunched.clipboardEnabled)
         #expect(relaunched.clipboardHotKey == HotKey(keyCode: 9, modifiers: 2048 | 256))
+        #expect(relaunched.clipboardPastesAfterChoosing)
     }
 
     @Test func automaticDisplayRemovesTheStoredOne() {

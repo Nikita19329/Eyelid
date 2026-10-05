@@ -13,6 +13,9 @@ struct ShelfView: View {
             HStack(spacing: 6) {
                 ScrollView(.horizontal) {
                     HStack(spacing: 2) {
+                        if shelf.items.count > 1 {
+                            AllFilesTile(items: shelf.items, shelf: shelf, dragSource: model.shelfDragSource)
+                        }
                         ForEach(shelf.items) { item in
                             ShelfTile(item: item, shelf: shelf, dragSource: model.shelfDragSource)
                         }
@@ -21,19 +24,21 @@ struct ShelfView: View {
                 }
                 .scrollIndicators(.never)
 
-                Button {
-                    shelf.removeAll()
-                } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.7))
-                        .frame(width: 22, height: 22)
-                        .background(Circle().fill(.white.opacity(0.12)))
-                        .contentShape(Circle())
+                VStack(spacing: 8) {
+                    ShelfButton(title: "AirDrop All") {
+                        Image(systemName: "dot.radiowaves.up.forward")
+                            .font(.system(size: 10, weight: .bold))
+                    } action: {
+                        ShelfSharing.airDrop(shelf.items.map(\.url))
+                    }
+
+                    ShelfButton(title: "Clear Shelf") {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .bold))
+                    } action: {
+                        shelf.removeAll()
+                    }
                 }
-                .buttonStyle(PressableButtonStyle())
-                .accessibilityLabel("Clear Shelf")
-                .help("Clear Shelf")
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background {
@@ -73,7 +78,7 @@ private struct ShelfTile: View {
         .frame(width: Self.width)
         .overlay {
             ShelfTileMouseArea(
-                item: item,
+                items: [item],
                 image: image,
                 imageFrame: CGRect(
                     x: (Self.width - Self.imageSide) / 2,
@@ -88,6 +93,79 @@ private struct ShelfTile: View {
         .task(id: item.url) {
             thumbnail = await ShelfThumbnails.load(for: item.url, side: Self.imageSide)
         }
+    }
+}
+
+/// The first tile when there are several files: drags them all at once.
+private struct AllFilesTile: View {
+    let items: [ShelfItem]
+    let shelf: Shelf
+    let dragSource: ShelfDragSource
+
+    private static let imageSide: CGFloat = 48
+    private static let width: CGFloat = 70
+    private static let padding: CGFloat = 4
+
+    var body: some View {
+        let images = items.prefix(3).map { ShelfThumbnails.image(for: $0.url) }
+
+        VStack(spacing: 4) {
+            ZStack {
+                ForEach(Array(images.enumerated().reversed()), id: \.offset) { index, image in
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: Self.imageSide - 8, height: Self.imageSide - 8)
+                        .rotationEffect(.degrees(Double(index) * 9 - 9))
+                        .offset(x: CGFloat(index) * 4 - 4)
+                }
+            }
+            .frame(width: Self.imageSide, height: Self.imageSide)
+            Text("All \(items.count)")
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(1)
+        }
+        .padding(Self.padding)
+        .frame(width: Self.width)
+        .overlay {
+            if let first = images.first {
+                ShelfTileMouseArea(
+                    items: items,
+                    isAll: true,
+                    image: first,
+                    imageFrame: CGRect(
+                        x: (Self.width - Self.imageSide) / 2,
+                        y: Self.padding,
+                        width: Self.imageSide,
+                        height: Self.imageSide
+                    ),
+                    shelf: shelf,
+                    dragSource: dragSource
+                )
+            }
+        }
+        .accessibilityLabel("All \(items.count) files")
+    }
+}
+
+/// A small round button beside the files.
+private struct ShelfButton<Label: View>: View {
+    let title: String
+    @ViewBuilder let label: () -> Label
+    let action: @MainActor () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            label()
+                .foregroundStyle(.white.opacity(0.7))
+                .frame(width: 22, height: 22)
+                .background(Circle().fill(.white.opacity(0.12)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .accessibilityLabel(title)
+        .help(title)
     }
 }
 

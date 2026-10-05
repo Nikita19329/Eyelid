@@ -30,6 +30,8 @@ final class NotchViewModel {
         static let hudDuration: TimeInterval = 1.5
         /// How long a battery event stays next to the closed notch, in seconds.
         static let batteryEventDuration: TimeInterval = 3
+        /// How long a new sound output stays next to the closed notch, in seconds.
+        static let outputEventDuration: TimeInterval = 3
         /// Transparent margin around the open notch so its shadow is not clipped.
         static let shadowPadding: CGFloat = 40
         /// How far around the closed notch dragged files open it, which makes the notch easier to hit.
@@ -48,15 +50,24 @@ final class NotchViewModel {
     var hud: HUDEvent?
     /// Shown next to the closed notch for a few seconds, in place of now playing.
     var batteryEvent: BatteryEvent?
+    /// Where sound just switched to, or the earbuds in use as they change. Shown in place of a battery event or now
+    /// playing.
+    var output: OutputEvent?
     /// Whether files are being dragged anywhere on the screen, which may end on the notch.
     var isDraggingFiles = false
     /// Whether files are being dragged over the open notch, which would add them to the shelf.
     var isDropTargeted = false
     /// Whether the notch stays open wherever the pointer goes: after the clipboard shortcut, until an entry is
     /// picked, Escape is pressed or the user clicks elsewhere.
-    var isPinned = false
+    var isHeldOpen = false
     /// The clipboard entry that Return copies, by its place in the list.
     var clipboardSelection = 0
+    /// What's been typed to search the clipboard history.
+    var clipboardQuery = "" {
+        didSet { clipboardSelection = 0 }
+    }
+    /// Whether the selected copy shows in full, in place of the list.
+    var showsClipboardPreview = false
     let nowPlaying: NowPlayingService
     let battery: BatteryService
     let shelf: Shelf
@@ -65,6 +76,8 @@ final class NotchViewModel {
     @ObservationIgnored let shelfDragSource = ShelfDragSource()
     /// Set by the window controller, which owns opening and closing.
     @ObservationIgnored var close: @MainActor () -> Void = {}
+    /// Presses ⌘V in the app in front. Set by the window controller, which knows when it has the keyboard back.
+    @ObservationIgnored var pasteIntoFrontApp: @MainActor () -> Void = {}
 
     init(
         geometry: NotchGeometry,
@@ -94,31 +107,58 @@ final class NotchViewModel {
         settings.clipboardEnabled && tab == .clipboard
     }
 
-    /// Puts a clipboard entry back on the pasteboard, ready to paste, and closes the notch.
+    /// The clipboard entries that match what's been typed.
+    var visibleClipboardEntries: [ClipboardEntry] {
+        clipboard.entries.filter { $0.matches(clipboardQuery) }
+    }
+
+    var selectedClipboardEntry: ClipboardEntry? {
+        let entries = visibleClipboardEntries
+        return entries.indices.contains(clipboardSelection) ? entries[clipboardSelection] : nil
+    }
+
+    /// Starts the clipboard history afresh: first entry selected, no search, no preview.
+    func resetClipboard() {
+        clipboardQuery = ""
+        clipboardSelection = 0
+        showsClipboardPreview = false
+    }
+
+    /// Puts a clipboard entry back on the pasteboard and closes the notch, then pastes it if that's turned on.
     func choose(_ entry: ClipboardEntry) {
         clipboard.copy(entry)
         close()
+        if settings.clipboardPastesAfterChoosing {
+            pasteIntoFrontApp()
+        }
     }
 
     /// Moves the clipboard selection up or down the list, staying within it.
     func moveClipboardSelection(by offset: Int) {
-        let last = clipboard.entries.count - 1
+        let last = visibleClipboardEntries.count - 1
         clipboardSelection = max(0, min(last, clipboardSelection + offset))
     }
 
     /// With nothing to choose, Return just closes the history, so the keys typed next reach the app in front.
     func chooseSelectedClipboardEntry() {
-        guard clipboard.entries.indices.contains(clipboardSelection) else {
+        guard let entry = selectedClipboardEntry else {
             close()
             return
         }
-        choose(clipboard.entries[clipboardSelection])
+        choose(entry)
     }
 
     func removeSelectedClipboardEntry() {
-        guard clipboard.entries.indices.contains(clipboardSelection) else { return }
-        clipboard.remove(clipboard.entries[clipboardSelection].id)
+        guard let entry = selectedClipboardEntry else { return }
+        clipboard.remove(entry.id)
         moveClipboardSelection(by: 0)
+    }
+
+    func togglePinOfSelectedClipboardEntry() {
+        guard let entry = selectedClipboardEntry else { return }
+        clipboard.setPinned(entry.id, !entry.isPinned)
+        // Keep the same copy selected after it moved.
+        clipboardSelection = visibleClipboardEntries.firstIndex { $0.id == entry.id } ?? 0
     }
 
     private func didDragOut(_ items: [ShelfItem.ID]) {
@@ -130,7 +170,7 @@ final class NotchViewModel {
 
     /// Whether the closed notch grows sideways to show the HUD, a battery event, or artwork and an equalizer.
     var showsActivity: Bool {
-        hud != nil || batteryEvent != nil || showsNowPlayingActivity
+        hud != nil || output != nil || batteryEvent != nil || showsNowPlayingActivity
     }
 
     var showsNowPlayingActivity: Bool {
@@ -145,7 +185,9 @@ final class NotchViewModel {
             let contentHeight = showsClipboard ? Layout.clipboardContentHeight : Layout.openContentHeight
             return CGSize(width: Layout.openWidth, height: notch.height + contentHeight)
         case .closed:
-            let sideWidth = hud != nil ? Layout.hudSideWidth : (showsActivity ? Layout.activitySideWidth : 0)
+            let sideWidth = hud != nil || output != nil
+                ? Layout.hudSideWidth
+                : (showsActivity ? Layout.activitySideWidth : 0)
             let extra = 2 * sideWidth
             return CGSize(width: notch.width + extra, height: notch.height)
         }

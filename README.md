@@ -30,6 +30,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Tabs** in the open notch: Now Playing, the file shelf, and the clipboard history once you turn it on.
 - **Stays out of the way.** No Dock icon, on every Space and over full-screen apps. Clicks pass through to the menu bar while the notch is closed.
 - **Macs without a notch** get a virtual one at the top of the main display.
+- **Several displays.** By default the notch follows the pointer from display to display. It can also stay on one display, or show on every display, each with its own hover. The volume HUD, battery and output changes, and the clipboard history show up on the display with the pointer.
 
 ### Now Playing
 
@@ -47,6 +48,9 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Fine steps.** Option-Shift changes the level in quarter steps, as in macOS.
 - **Off by default,** since handling the keys needs Accessibility access. See [Volume and brightness HUD](#volume-and-brightness-hud).
 
+- **Output changes.** When sound switches to other speakers or headphones, the notch shows them for a moment. AirPods and Beats come with their charge in a ring, as on iPhone. With one earbud in, it shows on its own side of the notch and its charge on the other, and putting the second one in or taking one out shows the change. Other outputs show their volume.
+- **The earbuds in use** show in the volume HUD too: one AirPod, or the pair.
+
 <img src="docs/images/hud-styles.png" alt="The five level styles for AirPods, the MacBook speakers and brightness" width="560">
 
 ### Battery
@@ -61,6 +65,8 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Drag them out** to Finder, Mail, a chat or any other app. A file then leaves the shelf, unless you turn that off.
 - **Files stay where they are.** The shelf only keeps a reference. It follows a file you rename or move, and survives a relaunch.
 - **Works with Photos, Mail and Safari,** whose photos, attachments and images only become files once they're dropped. Eyelid saves them in its Application Support folder until they leave the shelf.
+- **All at once.** With several files, the first tile drags them all.
+- **AirDrop** a file from its menu, or all of them with the button beside the files.
 - **Double-click** opens a file. **Right-click** to show it in Finder or remove it.
 
 <img src="docs/images/shelf.png" alt="The shelf in the open notch with a photo, a PDF, a text file, a folder and a zip archive" width="720">
@@ -69,7 +75,9 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 
 - **A shortcut away.** ⇧⌘V opens what you copied lately in the notch, wherever the pointer is. You can record a different shortcut in Settings.
 - **Compact.** Each copy takes one or two lines, however long it is, with its length below: "48 lines". The selected one shows a few more lines. Images show a thumbnail and their size, files their icon and names.
-- **Keyboard first.** ↑ and ↓ choose, Return copies, Delete removes, Escape closes. The app you were in keeps the keyboard, so ⌘V pastes right away. Clicking a copy works too.
+- **Keyboard first.** Type to search, ↑ and ↓ choose, Return copies, Escape closes. The app you were in gets the keyboard back, so ⌘V pastes right away, or turn on **Paste right away** to skip it. Clicking a copy works too.
+- **Preview.** Space shows the selected copy in full: all of a long text, scrollable, or an image as large as it fits.
+- **Pins.** ⌘P pins a copy to the top, where new copies don't push it out, and keeps it when Eyelid quits. ⌘⌫ removes a copy.
 - **Private.** Off by default. The last 50 copies stay in memory only, and copies that password managers mark as concealed are left out. See [Privacy](#privacy).
 
 <img src="docs/images/clipboard.png" alt="The clipboard history in the open notch: a message, 48 lines of code with the second line showing, a link and an image" width="720">
@@ -80,14 +88,14 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 
 | Tab | What's there |
 |---|---|
-| General | Launch at login, the display that shows the notch |
+| General | Launch at login, the displays that show a notch |
 | Notch | Hover delay, haptic feedback, live activity |
-| Volume & Brightness | The HUD, its level style, and an icon for each output device |
+| Volume & Brightness | The HUD, its level style, output changes, and an icon for each output device |
 | Battery | Battery activity |
 | Shelf | The file shelf, whether dragged-out files leave it, and a button to clear it |
-| Clipboard | The clipboard history, its shortcut, and a button to clear it |
+| Clipboard | The clipboard history, its shortcut, pasting right away, and a button to clear it |
 
-<img src="docs/images/settings.png" alt="The Volume & Brightness tab of Eyelid's settings" width="420">
+<img src="docs/images/settings.png" alt="The Volume & Brightness tab of Eyelid's settings: the HUD with its level style, output changes, and an icon for each output device" width="420">
 
 ## Install
 
@@ -138,7 +146,7 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 - **What it reads stays local.** What's playing, the battery and the audio devices are read on your Mac and never logged.
 - **Accessibility only if you ask for it.** Eyelid requests it only when you turn on the volume and brightness HUD, and then handles only the volume, mute and brightness keys. Other keys aren't touched.
 - **The shelf doesn't read your files.** It keeps bookmarks to them in user defaults. Previews come from Quick Look, which runs in its own sandboxed process.
-- **The clipboard history is opt-in and stays in memory.** It's gone when Eyelid quits, and copies that password managers mark as concealed or transient aren't kept. Since macOS 15.4, macOS also asks before an app reads what other apps copy: allow Eyelid under **Privacy & Security → Paste from Other Apps**, then reopen it.
+- **The clipboard history is opt-in and stays in memory.** It's gone when Eyelid quits, except for copies you pin, which are saved in Eyelid's Application Support folder. Copies that password managers mark as concealed or transient aren't kept. Since macOS 15.4, macOS also asks before an app reads what other apps copy: allow Eyelid under **Privacy & Security → Paste from Other Apps**, then reopen it.
 - **Settings** are stored in macOS user defaults.
 
 ## Build from source
@@ -167,7 +175,7 @@ make run
 
 ## How it works
 
-**The notch window.** A borderless, non-activating `NSPanel` floats just above the menu bar on every Space. Its size comes from `NSScreen.safeAreaInsets` and the `auxiliaryTopLeftArea` and `auxiliaryTopRightArea` next to the notch. The panel ignores mouse events while closed, so the menu bar under it stays clickable. A global mouse monitor opens it when the pointer enters the notch. Mouse events, unlike key events, don't need the Accessibility permission.
+**The notch window.** A borderless, non-activating `NSPanel` floats just above the menu bar on every Space. Its size comes from `NSScreen.safeAreaInsets` and the `auxiliaryTopLeftArea` and `auxiliaryTopRightArea` next to the notch. The panel ignores mouse events while closed, so the menu bar under it stays clickable. A global mouse monitor opens it when the pointer enters the notch. Mouse events, unlike key events, don't need the Accessibility permission. Each display that shows a notch gets its own panel, and the panels are added, moved and removed as displays come and go.
 
 **Now Playing.** Since macOS 15.4, MediaRemote, the private framework behind the Now Playing widget, only answers Apple's own entitled processes. Eyelid uses [mediaremote-adapter](https://github.com/ungive/mediaremote-adapter): it loads a small framework into Apple's signed `/usr/bin/perl`, which is still allowed to query MediaRemote, and streams updates as JSON lines. Eyelid runs it as a child process and decodes its output.
 
@@ -177,7 +185,9 @@ make run
 
 **Battery.** IOKit's power source notifications report every change, and Eyelid turns them into plug, unplug and low battery events.
 
-**Clipboard history.** macOS has no notification for copies, so Eyelid checks the pasteboard's change count twice a second and reads the pasteboard only after it changes. It keeps plain text, rich text, HTML, links, files and images, and puts them all back when you choose a copy. The shortcut is a Carbon hot key, which needs no permission. While the history is open, the notch's panel takes the keyboard without activating Eyelid, the way Spotlight does, so the app in front stays in front and gets the keyboard back when the history closes.
+**Output changes.** A CoreAudio listener notices the default output switching. macOS keeps the charge of AirPods and Beats, earbud by earbud and the case, as IOKit power sources for its Batteries widget. The public IOKit call only lists the Mac's own battery, so Eyelid looks up the private one that lists accessories, which needs no Bluetooth permission. An earbud in the case runs on the case's power, which tells which one is in use, and IOKit posts a notification when that changes.
+
+**Clipboard history.** macOS has no notification for copies, so Eyelid checks the pasteboard's change count twice a second and reads the pasteboard only after it changes. It keeps plain text, rich text, HTML, links, files and images, and puts them all back when you choose a copy. The shortcut is a Carbon hot key, which needs no permission. While the history is open, the notch's panel takes the keyboard without activating Eyelid, the way Spotlight does, so the app in front stays in front and gets the keyboard back when the history closes. **Paste right away** then presses ⌘V for you, which needs Accessibility access.
 
 **File shelf.** A drag starts by filling the system's drag pasteboard, so the mouse monitor tells a file drag from other mouse moves by its change count and types, and opens the notch to the shelf. The panel's content view is registered for file URLs and file promises. Files are kept as bookmarks, which find them again after a rename, a move or a relaunch. Promised files are received into a folder of their own per drop, and folders no longer on the shelf are deleted at the next launch: the app a file was just dragged to may still be reading it. Dragging out offers the same operations as Finder, so Finder moves a file within a disk and copies it to another disk or with Option.
 
@@ -240,6 +250,9 @@ Sources/Eyelid/
   NowPlaying/   mediaremote-adapter client, now playing model, artwork, views
   Battery/      IOKit battery reading, battery events and views
   HUD/          Media key tap, volume (CoreAudio), brightness (DisplayServices), device icons, HUD view
+  Output/       Output switches, headphone charge and earbuds in use (IOKit accessory power sources), views
+  Shelf/        File shelf: bookmarks, drops and file promises, dragging out, views
+  Clipboard/    Clipboard history, keyboard shortcuts (Carbon hot keys), pasting, views
   Settings/     Preferences, Settings window, launch at login
 Tests/          Unit tests (Swift Testing) for the logic that needs no screen
 Resources/      Info.plist, AppIcon.icns
@@ -253,7 +266,6 @@ docs/images/    Images for this README, rendered from Eyelid's own views
 ## Roadmap
 
 - [ ] Calendar: upcoming events
-- [ ] Notches on several displays at once
 - [ ] Automatic updates (Sparkle) and notarization
 
 What's already in each version is in the [release notes](https://github.com/Nikita19329/Eyelid/releases).
