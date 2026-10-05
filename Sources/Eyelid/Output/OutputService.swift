@@ -3,7 +3,7 @@ import Foundation
 import notify
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Output")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "Output")
 
 /// Shows where sound goes: the new output whenever it switches, and the earbuds in use as they go in and out of the
 /// case.

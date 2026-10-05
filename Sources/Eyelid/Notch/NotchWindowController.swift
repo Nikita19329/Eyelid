@@ -2,7 +2,7 @@ import AppKit
 import Carbon.HIToolbox
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Notch")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "Notch")
 
 /// Owns the notch panel of one display: keeps it pinned to the notch and opens or closes it as the cursor moves.
 @MainActor

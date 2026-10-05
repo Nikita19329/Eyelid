@@ -6,10 +6,10 @@
 
 **An open-source, Dynamic Island–style notch for your MacBook.**
 
-[![Build](https://github.com/Nikita19329/Eyelid/actions/workflows/build.yml/badge.svg)](https://github.com/Nikita19329/Eyelid/actions/workflows/build.yml)
-[![Latest release](https://img.shields.io/github/v/release/Nikita19329/Eyelid)](https://github.com/Nikita19329/Eyelid/releases/latest)
+[![Build](https://github.com/Satis-ku/Eyelid/actions/workflows/build.yml/badge.svg)](https://github.com/Satis-ku/Eyelid/actions/workflows/build.yml)
+[![Latest release](https://img.shields.io/github/v/release/Satis-ku/Eyelid)](https://github.com/Satis-ku/Eyelid/releases/latest)
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)](#install)
-[![License: GPL v3](https://img.shields.io/github/license/Nikita19329/Eyelid)](LICENSE)
+[![License: GPL v3](https://img.shields.io/github/license/Satis-ku/Eyelid)](LICENSE)
 
 <img src="docs/images/notch-open.png" alt="The open notch with a playing track: artwork, title, progress and playback controls, with tabs and the battery level beside the notch" width="720">
 
@@ -104,19 +104,21 @@ Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs. It's m
 ### With Homebrew
 
 ```sh
-brew install --cask nikita19329/tap/eyelid
+brew install --cask satis-ku/tap/eyelid
 ```
 
-The [tap](https://github.com/Nikita19329/homebrew-tap) only accepts zips that Eyelid's Release workflow built and attested, and picks up new releases within a day.
+The [tap](https://github.com/Satis-ku/homebrew-tap) only accepts zips that Eyelid's Release workflow built and attested, and picks up new releases within a day.
 
 ### By hand
 
-1. Download `Eyelid-X.Y.Z.zip` from the [latest release](https://github.com/Nikita19329/Eyelid/releases/latest).
+1. Download `Eyelid-X.Y.Z.zip` from the [latest release](https://github.com/Satis-ku/Eyelid/releases/latest).
 2. **Optional:** check that the zip was built from this repository by its Release workflow, with the [GitHub CLI](https://cli.github.com):
 
    ```sh
-   gh attestation verify Eyelid-0.2.0.zip --repo Nikita19329/Eyelid
+   gh attestation verify Eyelid-0.6.0.zip --repo Satis-ku/Eyelid
    ```
+
+   Releases up to 0.5.0 were built before the repository moved from `Nikita19329`, so check those with `--repo Nikita19329/Eyelid`.
 
 3. Unzip it and move `Eyelid.app` to Applications.
 
@@ -138,7 +140,7 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 ### Updating and uninstalling
 
 - **Update:** `brew upgrade --cask eyelid`. By hand: quit Eyelid from the menu bar, replace `Eyelid.app` with the new one, and open it.
-- **Uninstall:** turn off **Launch at login** in Settings first. Then run `brew uninstall --cask --zap eyelid`, which also removes Eyelid's settings and the files it saved for the shelf. By hand: quit Eyelid, delete `Eyelid.app`, run `defaults delete io.github.nikita19329.eyelid`, and delete `~/Library/Application Support/io.github.nikita19329.eyelid`. Remove Eyelid from the Accessibility list if you allowed it there.
+- **Uninstall:** turn off **Launch at login** in Settings first. Then run `brew uninstall --cask --zap eyelid`, which also removes Eyelid's settings and the files it saved for the shelf. By hand: quit Eyelid, delete `Eyelid.app`, run `defaults delete io.github.satis-ku.eyelid`, and delete `~/Library/Application Support/io.github.satis-ku.eyelid`. Remove Eyelid from the Accessibility list if you allowed it there.
 
 ## Privacy
 
@@ -154,7 +156,7 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 You need macOS 14 or later, Xcode, and CMake (`brew install cmake`). The Command Line Tools alone are not enough: on the macOS 27 SDK, SwiftUI's `@State` is a macro whose compiler plugin ships only with Xcode.
 
 ```sh
-git clone --recurse-submodules https://github.com/Nikita19329/Eyelid.git
+git clone --recurse-submodules https://github.com/Satis-ku/Eyelid.git
 cd Eyelid
 make run
 ```
@@ -230,10 +232,10 @@ Issues and pull requests are welcome. For anything bigger than a small fix, plea
    git push
    ```
 
-4. The [Homebrew tap](https://github.com/Nikita19329/homebrew-tap) picks up the release within a day. To update it right away:
+4. The [Homebrew tap](https://github.com/Satis-ku/homebrew-tap) picks up the release within a day. To update it right away:
 
    ```sh
-   gh workflow run update.yml --repo Nikita19329/homebrew-tap
+   gh workflow run update.yml --repo Satis-ku/homebrew-tap
    ```
 
 The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version, the signature and the protections listed under [Security](#security). This build job can only read the repository. A separate publish job, the only one that can write, signs a build provenance attestation for the zip, then publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
@@ -268,7 +270,7 @@ docs/images/    Images for this README, rendered from Eyelid's own views
 - [ ] Calendar: upcoming events
 - [ ] Automatic updates (Sparkle) and notarization
 
-What's already in each version is in the [release notes](https://github.com/Nikita19329/Eyelid/releases).
+What's already in each version is in the [release notes](https://github.com/Satis-ku/Eyelid/releases).
 
 ## Acknowledgements
 

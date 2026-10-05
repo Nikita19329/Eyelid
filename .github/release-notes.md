@@ -3,7 +3,7 @@
 With [Homebrew](https://brew.sh):
 
 ```sh
-brew install --cask nikita19329/tap/eyelid
+brew install --cask satis-ku/tap/eyelid
 ```
 
 Or by hand: download the `Eyelid-*.zip` below, unzip it, and move `Eyelid.app` to your Applications folder.

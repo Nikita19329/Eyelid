@@ -1,7 +1,7 @@
 import AppKit
 import os
 
-private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Shelf")
+private let logger = Logger(subsystem: "io.github.satis-ku.eyelid", category: "Shelf")
 
 /// Files dropped on the notch: file URLs from Finder and most apps, and files that apps such as Photos, Mail and
 /// Safari write only once they are dropped.
