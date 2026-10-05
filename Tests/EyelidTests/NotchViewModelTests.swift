@@ -17,6 +17,7 @@ struct NotchViewModelTests {
             geometry: geometry,
             nowPlaying: NowPlayingService(),
             battery: BatteryService(),
+            shelf: Shelf(store: InMemorySettingsStore(), promisedFilesDirectory: FileManager.default.temporaryDirectory),
             settings: AppSettings(defaults: InMemorySettingsStore())
         )
     }
@@ -97,5 +98,45 @@ struct NotchViewModelTests {
         #expect(model.hoverRect.contains(belowTheHardwareNotch))
         #expect(model.hoverRect.contains(CGPoint(x: 756 - 225, y: 982 - 145)))
         #expect(!model.hoverRect.contains(CGPoint(x: 756, y: 982 - 200)))
+    }
+
+    @Test func draggedFilesOpenTheNotchFromFartherAway() {
+        let model = makeModel()
+        let belowTheNotch = CGPoint(x: 756, y: 982 - 32 - 16)
+        #expect(!model.hoverRect.contains(belowTheNotch))
+
+        model.isDraggingFiles = true
+        #expect(model.hoverRect.contains(belowTheNotch))
+
+        model.settings.shelfEnabled = false
+        #expect(!model.hoverRect.contains(belowTheNotch))
+    }
+
+    @Test func shelfTabNeedsTheShelf() {
+        let model = makeModel()
+        #expect(model.tab == .nowPlaying)
+
+        model.tab = .shelf
+        #expect(model.showsShelf)
+
+        model.settings.shelfEnabled = false
+        #expect(!model.showsShelf)
+    }
+
+    @Test func filesDraggedOutLeaveTheShelf() throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: "EyelidDragOut-\(UUID().uuidString).txt")
+        try Data("taken".utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let model = makeModel()
+        model.shelf.add([file])
+        let item = try #require(model.shelf.items.first)
+
+        model.settings.shelfRemovesDraggedFiles = false
+        model.shelfDragSource.onDrop?([item.id])
+        #expect(model.shelf.items.count == 1)
+
+        model.settings.shelfRemovesDraggedFiles = true
+        model.shelfDragSource.onDrop?([item.id])
+        #expect(model.shelf.items.isEmpty)
     }
 }

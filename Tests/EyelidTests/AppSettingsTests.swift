@@ -16,6 +16,8 @@ struct AppSettingsTests {
         #expect(settings.hudLevelStyle == .bar)
         #expect(settings.deviceIcons.isEmpty)
         #expect(settings.displayID == nil)
+        #expect(settings.shelfEnabled)
+        #expect(settings.shelfRemovesDraggedFiles)
     }
 
     @Test func changesSurviveARelaunch() {
@@ -29,6 +31,8 @@ struct AppSettingsTests {
         settings.hudLevelStyle = .segments
         settings.deviceIcons = ["headset-uid": .headset]
         settings.displayID = 42
+        settings.shelfEnabled = false
+        settings.shelfRemovesDraggedFiles = false
 
         let relaunched = AppSettings(defaults: store)
 
@@ -40,6 +44,8 @@ struct AppSettingsTests {
         #expect(relaunched.hudLevelStyle == .segments)
         #expect(relaunched.deviceIcons == ["headset-uid": .headset])
         #expect(relaunched.displayID == 42)
+        #expect(!relaunched.shelfEnabled)
+        #expect(!relaunched.shelfRemovesDraggedFiles)
     }
 
     @Test func automaticDisplayRemovesTheStoredOne() {

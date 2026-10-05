@@ -15,6 +15,8 @@ final class AppSettings {
         static let hudLevelStyle = "hudLevelStyle"
         static let deviceIcons = "deviceIcons"
         static let displayID = "displayID"
+        static let shelfEnabled = "shelfEnabled"
+        static let shelfRemovesDraggedFiles = "shelfRemovesDraggedFiles"
     }
 
     /// Delays offered in Settings, in seconds.
@@ -65,6 +67,16 @@ final class AppSettings {
         }
     }
 
+    /// Whether files dropped on the notch are kept on a shelf in the open notch.
+    var shelfEnabled: Bool {
+        didSet { defaults.set(shelfEnabled, forKey: Key.shelfEnabled) }
+    }
+
+    /// Whether a file leaves the shelf once it is dragged out and dropped somewhere.
+    var shelfRemovesDraggedFiles: Bool {
+        didSet { defaults.set(shelfRemovesDraggedFiles, forKey: Key.shelfRemovesDraggedFiles) }
+    }
+
     private let defaults: any SettingsStore
 
     init(defaults: any SettingsStore = UserDefaults.standard) {
@@ -78,6 +90,8 @@ final class AppSettings {
         deviceIcons = (defaults.object(forKey: Key.deviceIcons) as? [String: String] ?? [:])
             .compactMapValues(DeviceIcon.init(rawValue:))
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
+        shelfEnabled = defaults.object(forKey: Key.shelfEnabled) as? Bool ?? true
+        shelfRemovesDraggedFiles = defaults.object(forKey: Key.shelfRemovesDraggedFiles) as? Bool ?? true
     }
 }
 

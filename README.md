@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="docs/images/icon.png" alt="Eyelid's icon: the top of a MacBook display, with the camera in the notch as an eye and the notch's glowing lower edge as its lower eyelid" width="128">
+
 # Eyelid
 
 **An open-source, Dynamic Island–style notch for your MacBook.**
@@ -9,11 +11,11 @@
 [![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)](#install)
 [![License: GPL v3](https://img.shields.io/github/license/Nikita19329/Eyelid)](LICENSE)
 
-<img src="docs/images/notch-open.png" alt="The open notch with a playing track: artwork, title, progress, playback controls, and the battery level beside the notch" width="720">
+<img src="docs/images/notch-open.png" alt="The open notch with a playing track: artwork, title, progress and playback controls, with tabs and the battery level beside the notch" width="720">
 
 </div>
 
-Eyelid lives in the notch and blends in with it. Hover over the notch and it opens to show what's playing. Press a volume or brightness key and the level appears beside the notch instead of the system HUD. Plug in the charger and the battery shows up for a moment.
+Eyelid lives in the notch and blends in with it. Hover over the notch and it opens to show what's playing. Drop files on it to keep them at hand. Press a volume or brightness key and the level appears beside the notch instead of the system HUD. Plug in the charger and the battery shows up for a moment.
 
 > **Status:** early, but usable day to day. Expect rough edges.
 
@@ -25,6 +27,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 
 - **Blends in.** The closed notch matches the hardware cutout, so you don't notice Eyelid until you need it.
 - **Hover to open.** The notch opens when the pointer reaches it and closes when the pointer leaves. You can add a delay, and Force Touch trackpads give a haptic tick.
+- **Two tabs** in the open notch: Now Playing and the file shelf.
 - **Stays out of the way.** No Dock icon, on every Space and over full-screen apps. Clicks pass through to the menu bar while the notch is closed.
 - **Macs without a notch** get a virtual one at the top of the main display.
 
@@ -52,6 +55,16 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Low battery warnings** at 20% and 10%.
 - **Battery level** in the open notch.
 
+### File shelf
+
+- **Drop files on the notch.** Drag files toward the notch and it opens to the shelf. Drop them anywhere on it.
+- **Drag them out** to Finder, Mail, a chat or any other app. A file then leaves the shelf, unless you turn that off.
+- **Files stay where they are.** The shelf only keeps a reference. It follows a file you rename or move, and survives a relaunch.
+- **Works with Photos, Mail and Safari,** whose photos, attachments and images only become files once they're dropped. Eyelid saves them in its Application Support folder until they leave the shelf.
+- **Double-click** opens a file. **Right-click** to show it in Finder or remove it.
+
+<img src="docs/images/shelf.png" alt="The shelf in the open notch with a photo, a PDF, a text file, a folder and a zip archive" width="720">
+
 ### Settings
 
 The eye icon in the menu bar opens Settings and quits Eyelid.
@@ -62,12 +75,23 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 | Notch | Hover delay, haptic feedback, live activity |
 | Volume & Brightness | The HUD, its level style, and an icon for each output device |
 | Battery | Battery activity |
+| Shelf | The file shelf, whether dragged-out files leave it, and a button to clear it |
 
 <img src="docs/images/settings.png" alt="The Volume & Brightness tab of Eyelid's settings" width="420">
 
 ## Install
 
 Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs. It's made for MacBooks with a notch; other Macs get a virtual one.
+
+### With Homebrew
+
+```sh
+brew install --cask nikita19329/tap/eyelid
+```
+
+The [tap](https://github.com/Nikita19329/homebrew-tap) only accepts zips that Eyelid's Release workflow built and attested, and picks up new releases within a day.
+
+### By hand
 
 1. Download `Eyelid-X.Y.Z.zip` from the [latest release](https://github.com/Nikita19329/Eyelid/releases/latest).
 2. **Optional:** check that the zip was built from this repository by its Release workflow, with the [GitHub CLI](https://cli.github.com):
@@ -77,11 +101,14 @@ Eyelid runs on macOS 14 Sonoma or later, on Apple silicon and Intel Macs. It's m
    ```
 
 3. Unzip it and move `Eyelid.app` to Applications.
-4. Open Eyelid. It isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
 
-   ```sh
-   xattr -dr com.apple.quarantine /Applications/Eyelid.app
-   ```
+### First launch
+
+Eyelid isn't notarized yet, so macOS blocks the first launch. Allow it in **System Settings → Privacy & Security** with **Open Anyway**, or remove the quarantine flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/Eyelid.app
+```
 
 ### Volume and brightness HUD
 
@@ -92,14 +119,15 @@ Releases are signed ad hoc, so macOS ties the permission to one exact build. Aft
 
 ### Updating and uninstalling
 
-- **Update:** quit Eyelid from the menu bar, replace `Eyelid.app` with the new one, and open it.
-- **Uninstall:** turn off **Launch at login** in Settings, quit Eyelid, and delete `Eyelid.app`. To remove its settings too, run `defaults delete io.github.nikita19329.eyelid`, and remove Eyelid from the Accessibility list if you allowed it there.
+- **Update:** `brew upgrade --cask eyelid`. By hand: quit Eyelid from the menu bar, replace `Eyelid.app` with the new one, and open it.
+- **Uninstall:** turn off **Launch at login** in Settings first. Then run `brew uninstall --cask --zap eyelid`, which also removes Eyelid's settings and the files it saved for the shelf. By hand: quit Eyelid, delete `Eyelid.app`, run `defaults delete io.github.nikita19329.eyelid`, and delete `~/Library/Application Support/io.github.nikita19329.eyelid`. Remove Eyelid from the Accessibility list if you allowed it there.
 
 ## Privacy
 
 - **Nothing leaves your Mac.** Eyelid never connects to the internet and has no analytics or telemetry.
 - **What it reads stays local.** What's playing, the battery and the audio devices are read on your Mac and never logged.
 - **Accessibility only if you ask for it.** Eyelid requests it only when you turn on the volume and brightness HUD, and then handles only the volume, mute and brightness keys. Other keys aren't touched.
+- **The shelf doesn't read your files.** It keeps bookmarks to them in user defaults. Previews come from Quick Look, which runs in its own sandboxed process.
 - **Settings** are stored in macOS user defaults.
 
 ## Build from source
@@ -118,6 +146,7 @@ make run
 | `make app`   | Release build of `build/Eyelid.app`                                   |
 | `make debug` | Debug build of `build/Eyelid.app`                                     |
 | `make test`  | Runs the unit tests                                                   |
+| `make icon`  | Renders the app icon from `scripts/render-icon.swift` and packs it     |
 | `make clean` | Removes `.build` and `build`                                          |
 
 - **Quick iterations:** after `make app` has run once, `swift run` from the repository root works too. To work in Xcode, open `Package.swift`.
@@ -136,6 +165,8 @@ make run
 **Device icons.** The volume HUD picks the icon from what CoreAudio reports about the output: the connection type, whether wired headphones are plugged in, and for Bluetooth the model UID, which holds the vendor and product ID. That's enough for AirPods and Beats, even after renaming them. Other Bluetooth devices all look like headphones to macOS, hence the per-device icon setting.
 
 **Battery.** IOKit's power source notifications report every change, and Eyelid turns them into plug, unplug and low battery events.
+
+**File shelf.** A drag starts by filling the system's drag pasteboard, so the mouse monitor tells a file drag from other mouse moves by its change count and types, and opens the notch to the shelf. The panel's content view is registered for file URLs and file promises. Files are kept as bookmarks, which find them again after a rename, a move or a relaunch. Promised files are received into a folder of their own per drop, and folders no longer on the shelf are deleted at the next launch: the app a file was just dragged to may still be reading it. Dragging out offers the same operations as Finder, so Finder moves a file within a disk and copies it to another disk or with Option.
 
 ## Security
 
@@ -159,7 +190,7 @@ Issues and pull requests are welcome. For anything bigger than a small fix, plea
 <details>
 <summary><b>Releasing</b> (maintainers)</summary>
 
-1. Open a pull request from `develop` to `main` titled `Release X.Y.Z`, and merge it with a merge commit once the checks pass.
+1. Open a pull request to `main` titled `Release X.Y.Z`, from `develop` or from a `release/X.Y.Z` branch off `develop` for last changes such as the release notes. Merge it with a merge commit once the checks pass.
 2. Tag the merge commit on `main`:
 
    ```sh
@@ -174,6 +205,12 @@ Issues and pull requests are welcome. For anything bigger than a small fix, plea
    git switch develop && git pull
    git merge main
    git push
+   ```
+
+4. The [Homebrew tap](https://github.com/Nikita19329/homebrew-tap) picks up the release within a day. To update it right away:
+
+   ```sh
+   gh workflow run update.yml --repo Nikita19329/homebrew-tap
    ```
 
 The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version, the signature and the protections listed under [Security](#security). This build job can only read the repository. A separate publish job, the only one that can write, signs a build provenance attestation for the zip, then publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
@@ -192,8 +229,8 @@ Sources/Eyelid/
   HUD/          Media key tap, volume (CoreAudio), brightness (DisplayServices), device icons, HUD view
   Settings/     Preferences, Settings window, launch at login
 Tests/          Unit tests (Swift Testing) for the logic that needs no screen
-Resources/      Info.plist
-scripts/        build-app.sh: builds, stamps and signs Eyelid.app without an Xcode project
+Resources/      Info.plist, AppIcon.icns
+scripts/        build-app.sh builds, stamps and signs Eyelid.app; render-icon.swift draws the icon
 Vendor/         mediaremote-adapter (git submodule)
 docs/images/    Images for this README, rendered from Eyelid's own views
 ```
@@ -203,9 +240,8 @@ docs/images/    Images for this README, rendered from Eyelid's own views
 ## Roadmap
 
 - [ ] Calendar: upcoming events
-- [ ] File shelf: drop files onto the notch
 - [ ] Notches on several displays at once
-- [ ] Automatic updates (Sparkle), a Homebrew cask, notarization
+- [ ] Automatic updates (Sparkle) and notarization
 
 What's already in each version is in the [release notes](https://github.com/Nikita19329/Eyelid/releases).
 

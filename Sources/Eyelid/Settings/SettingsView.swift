@@ -3,6 +3,7 @@ import SwiftUI
 /// Tabs, like System Settings panes in other Mac apps, so no tab grows taller than the screen.
 struct SettingsView: View {
     @Bindable var settings: AppSettings
+    let shelf: Shelf
 
     var body: some View {
         TabView {
@@ -14,6 +15,8 @@ struct SettingsView: View {
                 .tabItem { Label("Volume & Brightness", systemImage: "speaker.wave.2") }
             BatterySettings(settings: settings)
                 .tabItem { Label("Battery", systemImage: "battery.75percent") }
+            ShelfSettings(settings: settings, shelf: shelf)
+                .tabItem { Label("Shelf", systemImage: "tray") }
             AboutSettings()
                 .tabItem { Label("About", systemImage: "info.circle") }
         }
@@ -144,9 +147,62 @@ private struct BatterySettings: View {
     }
 }
 
+private struct ShelfSettings: View {
+    @Bindable var settings: AppSettings
+    let shelf: Shelf
+
+    var body: some View {
+        Form {
+            Section {
+                Toggle(isOn: $settings.shelfEnabled) {
+                    Text("File shelf")
+                    Text("Drop files on the notch to keep them at hand, then drag them out wherever you need them. The files stay where they are.")
+                }
+
+                Toggle(isOn: $settings.shelfRemovesDraggedFiles) {
+                    Text("Remove files once they are dragged out")
+                    Text("Otherwise they stay on the shelf until you remove them.")
+                }
+                .disabled(!settings.shelfEnabled)
+            }
+
+            Section {
+                LabeledContent("On the shelf") {
+                    HStack {
+                        Text(shelf.items.count, format: .number)
+                            .monospacedDigit()
+                        Button("Clear") {
+                            shelf.removeAll()
+                        }
+                        .disabled(shelf.items.isEmpty)
+                    }
+                }
+            }
+        }
+        .formStyle(.grouped)
+        .frame(width: SettingsView.width)
+        .fixedSize()
+    }
+}
+
 private struct AboutSettings: View {
     var body: some View {
         Form {
+            Section {
+                HStack(spacing: 14) {
+                    Image(nsImage: NSApp.applicationIconImage)
+                        .resizable()
+                        .frame(width: 64, height: 64)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Eyelid")
+                            .font(.title2.weight(.semibold))
+                        Text("An open-source, Dynamic Island–style notch for your MacBook.")
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+
             Section {
                 LabeledContent("Version", value: Self.version)
                 LabeledContent("License", value: "GNU GPL v3")
