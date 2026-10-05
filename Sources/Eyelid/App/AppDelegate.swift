@@ -5,7 +5,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings()
     private let nowPlaying = NowPlayingService()
     private let battery = BatteryService()
-    private let hud = HUDService()
+    private lazy var hud = HUDService(settings: settings)
     private var notchController: NotchWindowController?
     private var signalSources: [DispatchSourceSignal] = []
 

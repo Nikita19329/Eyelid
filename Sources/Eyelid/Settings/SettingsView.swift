@@ -42,6 +42,16 @@ struct SettingsView: View {
                 SystemHUDSettings(settings: settings)
             }
 
+            if settings.replacesSystemHUD {
+                Section {
+                    OutputDeviceIconSettings(settings: settings)
+                } header: {
+                    Text("Output devices")
+                } footer: {
+                    Text("The icon the volume HUD shows for each device. macOS knows AirPods and Beats, but other Bluetooth devices all look like headphones to it.")
+                }
+            }
+
             Section("Battery") {
                 Toggle(isOn: $settings.batteryActivityEnabled) {
                     Text("Battery activity")

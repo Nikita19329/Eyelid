@@ -7,16 +7,10 @@ struct SystemHUDSettings: View {
     @State private var isTrusted = AXIsProcessTrusted()
 
     var body: some View {
+        // Turning this on shows the system prompt for Accessibility access, from HUDService.
         Toggle(isOn: $settings.replacesSystemHUD) {
             Text("Volume and brightness")
             Text("Shows volume and brightness changes next to the notch instead of the system HUD. Eyelid needs Accessibility access to handle the keys.")
-        }
-        .onChange(of: settings.replacesSystemHUD) { _, isOn in
-            if isOn, !AXIsProcessTrusted() {
-                // Shows the system prompt that leads to Privacy & Security → Accessibility.
-                // The key is kAXTrustedCheckOptionPrompt, which Swift 6 flags as a mutable global.
-                AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
-            }
         }
         // Access is granted in System Settings, so keep checking while this window is open.
         .task {
@@ -34,5 +28,58 @@ struct SystemHUDSettings: View {
             }
             .foregroundStyle(.secondary)
         }
+
+        if settings.replacesSystemHUD {
+            Picker("Level", selection: $settings.hudLevelStyle) {
+                ForEach(LevelStyle.allCases, id: \.self) { style in
+                    Text(style.title).tag(style)
+                }
+            }
+
+            LabeledContent("Preview") {
+                HUDPreview(style: settings.hudLevelStyle)
+            }
+        }
+    }
+}
+
+/// An icon picker for every output device, so devices macOS can't tell apart get the right one.
+struct OutputDeviceIconSettings: View {
+    @Bindable var settings: AppSettings
+    @State private var devices: [OutputDevice] = []
+
+    var body: some View {
+        ForEach(devices) { device in
+            let automatic = DeviceIcon.automatic(for: device)
+
+            Picker(selection: icon(for: device)) {
+                Label("Automatic: \(automatic.title)", systemImage: automatic.availableSymbolName)
+                    .tag(DeviceIcon?.none)
+                Divider()
+                ForEach(DeviceIcon.allCases, id: \.self) { icon in
+                    Label(icon.title, systemImage: icon.availableSymbolName)
+                        .tag(Optional(icon))
+                }
+            } label: {
+                Label(device.name, systemImage: settings.icon(for: device).availableSymbolName)
+            }
+        }
+        // Devices come and go, AirPods especially, so refresh the list while the window is open.
+        .task {
+            while !Task.isCancelled {
+                let current = OutputDevice.all()
+                if current != devices {
+                    devices = current
+                }
+                try? await Task.sleep(for: .seconds(2))
+            }
+        }
+    }
+
+    private func icon(for device: OutputDevice) -> Binding<DeviceIcon?> {
+        Binding(
+            get: { settings.deviceIcons[device.id] },
+            set: { settings.deviceIcons[device.id] = $0 }
+        )
     }
 }

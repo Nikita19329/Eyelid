@@ -30,7 +30,7 @@ struct NotchView: View {
                 .transition(.opacity.combined(with: .scale(scale: 0.96, anchor: .top)))
         case .closed:
             if let hud = model.hud {
-                HUDView(event: hud, notchSize: model.geometry.notchSize)
+                HUDView(event: hud, style: model.settings.hudLevelStyle, notchSize: model.geometry.notchSize)
                     .transition(.opacity)
             } else if let event = model.batteryEvent {
                 BatteryActivityView(event: event, notchSize: model.geometry.notchSize)

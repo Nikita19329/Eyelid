@@ -13,17 +13,25 @@ struct HUDEvent: Equatable, Sendable {
     var kind: Kind
     var level: Float
     var isMuted = false
+    /// The output device's icon, for volume. `.speaker` draws waves that follow the level.
+    var deviceIcon: DeviceIcon = .speaker
 
     var symbolName: String {
         switch kind {
         case .volume:
-            if isMuted || level == 0 { "speaker.slash.fill" }
+            if deviceIcon != .speaker { deviceIcon.availableSymbolName }
+            else if isMuted || level == 0 { "speaker.slash.fill" }
             else if level < 1 / 3 { "speaker.wave.1.fill" }
             else if level < 2 / 3 { "speaker.wave.2.fill" }
             else { "speaker.wave.3.fill" }
         case .brightness:
             level < 0.5 ? "sun.min.fill" : "sun.max.fill"
         }
+    }
+
+    /// Device icons have no muted variant, so they dim instead.
+    var dimsIcon: Bool {
+        kind == .volume && deviceIcon != .speaker && (isMuted || level == 0)
     }
 }
 
@@ -32,10 +40,13 @@ struct HUDEvent: Equatable, Sendable {
 final class HUDService {
     var onEvent: (@MainActor (HUDEvent) -> Void)?
 
+    private let settings: AppSettings
     private var tap: MediaKeyTap!
     private var permissionTask: Task<Void, Never>?
+    private var hasPromptedForAccess = false
 
-    init() {
+    init(settings: AppSettings) {
+        self.settings = settings
         tap = MediaKeyTap { [weak self] press in
             self?.handle(press) ?? false
         }
@@ -51,6 +62,13 @@ final class HUDService {
             return
         }
         guard !tap.start() else { return }
+
+        // The ad hoc signature ties access to one build, so updates lose it too. Ask once per launch.
+        if !hasPromptedForAccess {
+            hasPromptedForAccess = true
+            // The key is kAXTrustedCheckOptionPrompt, which Swift 6 flags as a mutable global.
+            AXIsProcessTrustedWithOptions(["AXTrustedCheckOptionPrompt": true] as CFDictionary)
+        }
 
         // Access is granted in System Settings, outside the app, so check back until it is.
         logger.info("Waiting for Accessibility access to handle volume and brightness keys")
@@ -87,8 +105,9 @@ final class HUDService {
         let new = state.after(press.key, fine: press.isFineStep)
         guard SystemVolume.apply(new, from: state, on: device) else { return false }
 
-        logger.debug("Volume \(new.level, privacy: .public), muted: \(new.isMuted, privacy: .public)")
-        onEvent?(HUDEvent(kind: .volume, level: new.level, isMuted: new.isMuted))
+        let deviceIcon = OutputDevice(audioDevice: device).map(settings.icon(for:)) ?? .speaker
+        logger.debug("Volume \(new.level, privacy: .public), muted: \(new.isMuted, privacy: .public), icon: \(deviceIcon.rawValue, privacy: .public)")
+        onEvent?(HUDEvent(kind: .volume, level: new.level, isMuted: new.isMuted, deviceIcon: deviceIcon))
         return true
     }
 

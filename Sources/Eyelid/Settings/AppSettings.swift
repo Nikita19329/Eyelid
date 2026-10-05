@@ -12,6 +12,8 @@ final class AppSettings {
         static let showsLiveActivity = "showsLiveActivity"
         static let batteryActivityEnabled = "batteryActivityEnabled"
         static let replacesSystemHUD = "replacesSystemHUD"
+        static let hudLevelStyle = "hudLevelStyle"
+        static let deviceIcons = "deviceIcons"
         static let displayID = "displayID"
     }
 
@@ -43,6 +45,15 @@ final class AppSettings {
         didSet { defaults.set(replacesSystemHUD, forKey: Key.replacesSystemHUD) }
     }
 
+    var hudLevelStyle: LevelStyle {
+        didSet { defaults.set(hudLevelStyle.rawValue, forKey: Key.hudLevelStyle) }
+    }
+
+    /// Icons picked for output devices, by CoreAudio device UID. Devices without one get `DeviceIcon.automatic`.
+    var deviceIcons: [String: DeviceIcon] {
+        didSet { defaults.set(deviceIcons.mapValues(\.rawValue), forKey: Key.deviceIcons) }
+    }
+
     /// The display that shows the notch, or nil to pick one automatically.
     var displayID: CGDirectDisplayID? {
         didSet {
@@ -63,7 +74,16 @@ final class AppSettings {
         showsLiveActivity = defaults.object(forKey: Key.showsLiveActivity) as? Bool ?? true
         batteryActivityEnabled = defaults.object(forKey: Key.batteryActivityEnabled) as? Bool ?? true
         replacesSystemHUD = defaults.object(forKey: Key.replacesSystemHUD) as? Bool ?? false
+        hudLevelStyle = (defaults.object(forKey: Key.hudLevelStyle) as? String).flatMap(LevelStyle.init(rawValue:)) ?? .bar
+        deviceIcons = (defaults.object(forKey: Key.deviceIcons) as? [String: String] ?? [:])
+            .compactMapValues(DeviceIcon.init(rawValue:))
         displayID = (defaults.object(forKey: Key.displayID) as? Int).map { CGDirectDisplayID($0) }
+    }
+}
+
+extension AppSettings {
+    func icon(for device: OutputDevice) -> DeviceIcon {
+        deviceIcons[device.id] ?? .automatic(for: device)
     }
 }
 
