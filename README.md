@@ -205,7 +205,7 @@ With the volume and brightness HUD on, Eyelid holds Accessibility access: it can
 
 ## Support
 
-Eyelid is free and open source, and made in spare time. If it's useful to you, you can support my work on [Boosty](https://boosty.to/satis.ku). The first goal is an Apple Developer membership, so Eyelid can be notarized: no more Open Anyway on the first launch, and Accessibility access that survives updates.
+Eyelid is free and open source, and made in spare time. If it's useful to you, you can support my work on [Boosty](https://boosty.to/satis.ku).
 
 ## Contributing
 
