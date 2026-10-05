@@ -9,5 +9,10 @@ let package = Package(
             name: "Eyelid",
             path: "Sources/Eyelid"
         ),
+        .testTarget(
+            name: "EyelidTests",
+            dependencies: ["Eyelid"],
+            path: "Tests/EyelidTests"
+        ),
     ]
 )

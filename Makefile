@@ -1,4 +1,4 @@
-.PHONY: app debug run clean
+.PHONY: app debug run test clean
 
 app:
 	./scripts/build-app.sh release
@@ -11,6 +11,9 @@ run: app
 	@while pgrep -x Eyelid >/dev/null; do sleep 0.1; done
 	@# -n: Launch Services may still list the old instance for a moment and fail with error -600.
 	open -n build/Eyelid.app
+
+test:
+	swift test
 
 clean:
 	rm -rf .build build
