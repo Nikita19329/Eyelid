@@ -1,5 +1,7 @@
 # Eyelid
 
+[![Build](https://github.com/Nikita19329/Eyelid/actions/workflows/build.yml/badge.svg)](https://github.com/Nikita19329/Eyelid/actions/workflows/build.yml)
+
 An open-source, Dynamic Island–style notch for your MacBook.
 
 Eyelid sits on top of the notch and blends in with it. Hover over the notch and it opens up to show what's playing; move the pointer away and it tucks back in.
@@ -83,6 +85,8 @@ Vendor/         mediaremote-adapter (git submodule)
 ## Contributing
 
 Issues and pull requests are welcome. For anything bigger than a small fix, please open an issue first so we can agree on the approach.
+
+GitHub Actions builds every pull request and every push to `main` on macOS 26 with the runner's default Xcode. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
 
 ## License
 
