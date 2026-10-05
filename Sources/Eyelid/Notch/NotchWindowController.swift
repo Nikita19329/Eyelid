@@ -1,4 +1,5 @@
 import AppKit
+import Carbon.HIToolbox
 import os
 
 private let logger = Logger(subsystem: "io.github.nikita19329.eyelid", category: "Notch")
@@ -16,8 +17,18 @@ final class NotchWindowController {
     private var hudTask: Task<Void, Never>?
     /// The drag pasteboard changes when a drag starts, which tells drags apart from other mouse moves.
     private var dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
+    /// Handles the arrow keys, Return, Delete and Escape while the clipboard history has the keyboard.
+    private var keyMonitor: Any?
 
-    init(nowPlaying: NowPlayingService, battery: BatteryService, shelf: Shelf, hud: HUDService, settings: AppSettings) {
+    init(
+        nowPlaying: NowPlayingService,
+        battery: BatteryService,
+        shelf: Shelf,
+        clipboard: ClipboardHistory,
+        clipboardShortcut: ClipboardShortcut,
+        hud: HUDService,
+        settings: AppSettings
+    ) {
         self.settings = settings
         let screen = NotchGeometry.preferredScreen(displayID: settings.displayID) ?? NSScreen.screens[0]
         model = NotchViewModel(
@@ -25,6 +36,7 @@ final class NotchWindowController {
             nowPlaying: nowPlaying,
             battery: battery,
             shelf: shelf,
+            clipboard: clipboard,
             settings: settings
         )
 
@@ -44,6 +56,21 @@ final class NotchWindowController {
         }
         hud.onEvent = { [weak self] event in
             self?.show(event)
+        }
+        clipboardShortcut.onPress = { [weak self] in
+            self?.toggleClipboard()
+        }
+        model.close = { [weak self] in
+            self?.close()
+        }
+        // Clicking another window takes the keyboard away from the clipboard history, which then goes away.
+        NotificationCenter.default.addObserver(forName: NSWindow.didResignKeyNotification, object: panel, queue: .main) {
+            [weak self] _ in
+            MainActor.assumeIsolated {
+                if self?.model.isPinned == true {
+                    self?.close()
+                }
+            }
         }
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification,
@@ -146,6 +173,10 @@ final class NotchWindowController {
         switch type {
         case .leftMouseDown:
             dragPasteboardChangeCount = NSPasteboard(name: .drag).changeCount
+            // A click anywhere else puts away the clipboard history, as with a menu.
+            if model.isPinned, !model.bodyRect.contains(NSEvent.mouseLocation) {
+                close()
+            }
         case .leftMouseDragged:
             noticeFileDrag()
         case .leftMouseUp:
@@ -179,7 +210,9 @@ final class NotchWindowController {
             openTask?.cancel()
             openTask = nil
         case (.open, false):
-            close()
+            if !model.isPinned {
+                close()
+            }
         case (.open, true):
             break
         }
@@ -229,11 +262,82 @@ final class NotchWindowController {
 
     private func close() {
         logger.debug("Closed")
+        let wasPinned = model.isPinned
         model.state = .closed
         model.isDropTargeted = false
+        model.isPinned = false
+        if wasPinned {
+            giveUpKeyboard()
+        }
         panel.ignoresMouseEvents = true
         pollTask?.cancel()
         pollTask = nil
+    }
+}
+
+// MARK: - Clipboard
+
+extension NotchWindowController {
+    /// The clipboard shortcut opens the history, wherever the pointer is, and closes it again.
+    private func toggleClipboard() {
+        if model.isPinned {
+            close()
+            return
+        }
+        guard settings.clipboardEnabled else { return }
+
+        logger.debug("Opened the clipboard history")
+        model.tab = .clipboard
+        model.clipboardSelection = 0
+        model.isPinned = true
+        open()
+        takeKeyboard()
+    }
+
+    /// Makes the panel key, so the arrow keys, Return, Delete and Escape reach the history, and only while it's
+    /// open: the app in front stays active, and no other app loses those keys.
+    private func takeKeyboard() {
+        panel.allowsKey = true
+        panel.makeKey()
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            let keyCode = Int(event.keyCode)
+            let isHandled = MainActor.assumeIsolated {
+                self?.handleClipboardKey(keyCode) ?? false
+            }
+            return isHandled ? nil : event
+        }
+    }
+
+    private func giveUpKeyboard() {
+        if let keyMonitor {
+            NSEvent.removeMonitor(keyMonitor)
+        }
+        keyMonitor = nil
+        panel.allowsKey = false
+        // A window can't be told to stop being key. Ordering the panel out and back in hands the keyboard back
+        // to the app in front, as closing a menu does.
+        if panel.isKeyWindow {
+            panel.orderOut(nil)
+            panel.orderFrontRegardless()
+        }
+    }
+
+    private func handleClipboardKey(_ keyCode: Int) -> Bool {
+        switch keyCode {
+        case kVK_UpArrow:
+            model.moveClipboardSelection(by: -1)
+        case kVK_DownArrow:
+            model.moveClipboardSelection(by: 1)
+        case kVK_Return, kVK_ANSI_KeypadEnter:
+            model.chooseSelectedClipboardEntry()
+        case kVK_Delete, kVK_ForwardDelete:
+            model.removeSelectedClipboardEntry()
+        case kVK_Escape:
+            close()
+        default:
+            return false
+        }
+        return true
     }
 }
 
