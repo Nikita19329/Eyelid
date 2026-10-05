@@ -27,15 +27,17 @@ final class NotchViewModel {
     var state: State = .closed
     var geometry: NotchGeometry
     let nowPlaying: NowPlayingService
+    let settings: AppSettings
 
-    init(geometry: NotchGeometry, nowPlaying: NowPlayingService) {
+    init(geometry: NotchGeometry, nowPlaying: NowPlayingService, settings: AppSettings) {
         self.geometry = geometry
         self.nowPlaying = nowPlaying
+        self.settings = settings
     }
 
     /// Whether the closed notch grows sideways to show artwork and an equalizer.
     var showsActivity: Bool {
-        nowPlaying.track?.isPlaying == true
+        settings.showsLiveActivity && nowPlaying.track?.isPlaying == true
     }
 
     /// Size of the notch body, excluding the ears.
