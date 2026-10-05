@@ -54,6 +54,7 @@ Eyelid lives in the notch and blends in with it. Hover over the notch and it ope
 - **Charging and unplugging.** Plugging in or unplugging the charger shows the charge beside the notch for a few seconds, green while charging.
 - **Low battery warnings** at 20% and 10%.
 - **Battery level** in the open notch.
+- **Headphones.** Connecting AirPods or other Bluetooth headphones shows them beside the notch for a moment, with the charge of AirPods and Beats: the emptier earbud, in a ring as on iPhone.
 
 ### File shelf
 
@@ -83,7 +84,7 @@ The eye icon in the menu bar opens Settings and quits Eyelid.
 | General | Launch at login, the display that shows the notch |
 | Notch | Hover delay, haptic feedback, live activity |
 | Volume & Brightness | The HUD, its level style, and an icon for each output device |
-| Battery | Battery activity |
+| Battery | Battery activity, headphones |
 | Shelf | The file shelf, whether dragged-out files leave it, and a button to clear it |
 | Clipboard | The clipboard history, its shortcut, and a button to clear it |
 
@@ -176,6 +177,8 @@ make run
 **Device icons.** The volume HUD picks the icon from what CoreAudio reports about the output: the connection type, whether wired headphones are plugged in, and for Bluetooth the model UID, which holds the vendor and product ID. That's enough for AirPods and Beats, even after renaming them. Other Bluetooth devices all look like headphones to macOS, hence the per-device icon setting.
 
 **Battery.** IOKit's power source notifications report every change, and Eyelid turns them into plug, unplug and low battery events.
+
+**Headphones.** A CoreAudio listener notices a new Bluetooth output. macOS reports the charge of AirPods and Beats to `system_profiler SPBluetoothDataType`, a moment after they connect, so Eyelid asks it then. That needs no Bluetooth permission.
 
 **Clipboard history.** macOS has no notification for copies, so Eyelid checks the pasteboard's change count twice a second and reads the pasteboard only after it changes. It keeps plain text, rich text, HTML, links, files and images, and puts them all back when you choose a copy. The shortcut is a Carbon hot key, which needs no permission. While the history is open, the notch's panel takes the keyboard without activating Eyelid, the way Spotlight does, so the app in front stays in front and gets the keyboard back when the history closes.
 
