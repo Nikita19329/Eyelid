@@ -6,9 +6,10 @@ on:
   pull_request:
   workflow_dispatch:
 
-# A newer push to the same branch or pull request cancels the build that is still running.
+# A newer push to a pull request cancels its build that is still running. Pushes to main and develop
+# get a group per commit, so every merge is built instead of cancelled by the next one.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
   cancel-in-progress: true
 
 permissions:
