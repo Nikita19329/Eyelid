@@ -1,0 +1,20 @@
+name: Feature request
+description: An idea for Eyelid.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What it's for
+      description: What you'd like to do, or what bothers you now.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: How it could work
+      description: In the closed notch, the open one, or Settings. Sketches and screenshots of other apps are welcome.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Anything you tried instead

@@ -206,48 +206,15 @@ With the volume and brightness HUD on, Eyelid holds Accessibility access: it can
 - **Careful with artwork.** Any app or web page can set now playing artwork. Eyelid drops images over about 8 MB or 50 megapixels, decodes the rest away from the main thread, and scales them down to what the notch shows.
 - **Supply chain.** mediaremote-adapter is pinned to a reviewed release. Workflows pin GitHub Actions to commit SHAs, which Dependabot keeps current. Release zips come with a build provenance attestation.
 
+Found a vulnerability? Please report it privately, as [SECURITY.md](SECURITY.md) describes.
+
 ## Support
 
 Eyelid is free and open source, and made in spare time. If it's useful to you, you can support my work on [Boosty](https://boosty.to/satis.ku).
 
 ## Contributing
 
-Issues and pull requests are welcome. For anything bigger than a small fix, please open an issue first so we can agree on the approach.
-
-- **Branches:** `main` is the latest release, and `develop` collects work for the next one. It's the default branch, so branch off it, for example `feat/calendar`, and open your pull request against it.
-- **Commits** follow [Conventional Commits](https://www.conventionalcommits.org): `feat:`, `fix:`, `docs:`, `ci:` and so on.
-- **CI** builds and tests every pull request and every push to `main` and `develop` on macOS 26. The built app is attached to each run as a zip for 14 days, so you can try a change without building it yourself.
-- **Tests** cover what can be checked without a screen: decoding the adapter's output, playback time, battery events, media keys and level steps, device icons, notch layout and hover areas, settings, and artwork limits. Behavior on screen, such as hovering, haptics and the look of the notch, still needs a try on a real Mac. Mention what you checked in your pull request.
-
-<details>
-<summary><b>Releasing</b> (maintainers)</summary>
-
-1. Open a pull request to `main` titled `Release X.Y.Z`, from `develop` or from a `release/X.Y.Z` branch off `develop` for last changes such as the release notes. Merge it with a merge commit once the checks pass.
-2. Tag the merge commit on `main`:
-
-   ```sh
-   git switch main && git pull
-   git tag -a v0.2.0 -m "Eyelid 0.2.0"
-   git push origin v0.2.0
-   ```
-
-3. Bring the release back into `develop`, so development builds pick up the new version:
-
-   ```sh
-   git switch develop && git pull
-   git merge main
-   git push
-   ```
-
-4. The [Homebrew tap](https://github.com/Satis-ku/homebrew-tap) picks up the release within a day. To update it right away:
-
-   ```sh
-   gh workflow run update.yml --repo Satis-ku/homebrew-tap
-   ```
-
-The Release workflow runs the tests and builds a universal app stamped with the tag's version. It checks the version, the architectures, the minimum macOS version, the signature and the protections listed under [Security](#security). This build job can only read the repository. A separate publish job, the only one that can write, signs a build provenance attestation for the zip, then publishes a GitHub release with the zip, its SHA-256 checksum, and notes generated from the merged pull requests. Tags with a suffix, such as `v0.2.0-beta.1`, become prereleases.
-
-</details>
+Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers branches, commits, tests and releases, and [SECURITY.md](SECURITY.md) how to report a vulnerability privately.
 
 <details>
 <summary><b>Project layout</b></summary>

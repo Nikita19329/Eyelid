@@ -1,0 +1,57 @@
+name: Bug report
+description: Something in Eyelid doesn't work as it should.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. Please check the [latest release](https://github.com/Satis-ku/Eyelid/releases/latest) first. For a security problem, [report it privately](https://github.com/Satis-ku/Eyelid/security/advisories/new) instead.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: And what you expected instead. A screenshot or a screen recording helps a lot for how the notch looks or moves.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Play a track in Yandex Music
+        2. Swipe the volume on the AirPods
+        3. …
+    validations:
+      required: true
+  - type: input
+    id: eyelid-version
+    attributes:
+      label: Eyelid version
+      description: Settings → About.
+      placeholder: 0.8.0 (123)
+    validations:
+      required: true
+  - type: input
+    id: macos-version
+    attributes:
+      label: macOS version
+      placeholder: macOS 26.1
+    validations:
+      required: true
+  - type: input
+    id: mac
+    attributes:
+      label: Mac
+      description: The model, and any external displays.
+      placeholder: MacBook Pro 14-inch, M3, with a 27-inch display
+  - type: textarea
+    id: settings
+    attributes:
+      label: Related settings and apps
+      description: Settings that are on, such as the volume and brightness HUD, the clipboard history or the equalizer that follows the sound, and the app playing, if it's about Now Playing.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: If you can, run `log show --last 5m --predicate 'subsystem == "io.github.satis-ku.eyelid"' --info --debug` in Terminal right after it happens, and paste what's relevant.
+      render: text
