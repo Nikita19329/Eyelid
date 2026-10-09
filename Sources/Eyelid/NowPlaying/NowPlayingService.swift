@@ -83,7 +83,8 @@ final class NowPlayingService {
         let pipe = Pipe()
         process.standardOutput = pipe
         process.standardError = FileHandle.nullDevice
-        process.terminationHandler = { [weak self] process in
+        // Called on a background thread, so it can't belong to the main actor.
+        process.terminationHandler = { @Sendable [weak self] process in
             let status = process.terminationStatus
             Task { @MainActor in
                 self?.streamDidExit(status: status)

@@ -165,6 +165,27 @@ struct ShelfDropTests {
         #expect(!ShelfDrop.carriesFiles(nil))
     }
 
+    /// AppKit reports promised files, as VS Code hands over every file, on a background queue. That used to crash.
+    @Test func promisedFileWrittenOffTheMainThreadReachesTheShelf() async throws {
+        let file = FileManager.default.temporaryDirectory.appending(path: "EyelidPromised-\(UUID().uuidString).py")
+        try Data("print(1)".utf8).write(to: file)
+        defer { try? FileManager.default.removeItem(at: file) }
+        let shelf = Shelf(store: InMemorySettingsStore(), promisedFilesDirectory: FileManager.default.temporaryDirectory)
+        let handler = ShelfDrop.promisedFileHandler(for: shelf)
+
+        await withCheckedContinuation { continuation in
+            DispatchQueue.global().async {
+                handler(file, nil)
+                continuation.resume()
+            }
+        }
+        for _ in 0..<50 where shelf.items.isEmpty {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+
+        #expect(shelf.items.map { $0.url.resolvingSymlinksInPath() } == [file.resolvingSymlinksInPath()])
+    }
+
     @Test func dropAddsTheFilesButNotTheLinks() throws {
         let file = FileManager.default.temporaryDirectory.appending(path: "EyelidDrop-\(UUID().uuidString).txt")
         try Data("dropped".utf8).write(to: file)
