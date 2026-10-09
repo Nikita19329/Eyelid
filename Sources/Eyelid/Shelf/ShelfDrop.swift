@@ -51,14 +51,26 @@ enum ShelfDrop {
         }
 
         for promise in promises {
-            promise.receivePromisedFiles(atDestination: folder, options: [:], operationQueue: promiseQueue) { url, error in
-                if let error {
-                    logger.error("A promised file never came: \(error.localizedDescription, privacy: .public)")
-                    return
-                }
-                Task { @MainActor in
-                    shelf.add([url])
-                }
+            promise.receivePromisedFiles(
+                atDestination: folder,
+                options: [:],
+                operationQueue: promiseQueue,
+                reader: promisedFileHandler(for: shelf)
+            )
+        }
+    }
+
+    /// Called by AppKit on `promiseQueue` as each promised file is written, so it must not belong to the main actor:
+    /// Swift checks that at run time, and a main-actor closure called there crashes. Apps such as VS Code hand over
+    /// every file this way.
+    nonisolated static func promisedFileHandler(for shelf: Shelf) -> @Sendable (URL, (any Error)?) -> Void {
+        { url, error in
+            if let error {
+                logger.error("A promised file never came: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            Task { @MainActor in
+                shelf.add([url])
             }
         }
     }

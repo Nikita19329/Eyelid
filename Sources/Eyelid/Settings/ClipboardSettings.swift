@@ -4,7 +4,7 @@ import SwiftUI
 struct ClipboardSettings: View {
     @Bindable var settings: AppSettings
     let clipboard: ClipboardHistory
-    let shortcut: ClipboardShortcut
+    let shortcut: Shortcut
     /// Changes in System Settings, outside the app, so it's checked again every few seconds.
     @State private var access: ClipboardHistory.Access?
 
@@ -81,50 +81,4 @@ struct ClipboardSettings: View {
     /// Privacy & Security → Paste from Other Apps.
     private static let pasteboardPrivacySettings =
         URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Pasteboard")!
-}
-
-/// Shows a shortcut, and records a new one after a click.
-private struct HotKeyRecorder: View {
-    @Binding var hotKey: HotKey
-    let shortcut: ClipboardShortcut
-    @State private var isRecording = false
-    @State private var monitor: Any?
-
-    var body: some View {
-        Button {
-            isRecording ? stopRecording() : startRecording()
-        } label: {
-            Text(isRecording ? "Type a shortcut…" : hotKey.displayString)
-                .monospacedDigit()
-                .frame(minWidth: 110)
-        }
-        .onDisappear(perform: stopRecording)
-    }
-
-    private func startRecording() {
-        isRecording = true
-        // Otherwise pressing the current shortcut would open the history instead of being recorded.
-        shortcut.isSuspended = true
-        monitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { event in
-            if event.keyCode == UInt16(kVK_Escape) {
-                stopRecording()
-            } else if let new = HotKey(keyCode: event.keyCode, modifierFlags: event.modifierFlags) {
-                hotKey = new
-                stopRecording()
-            } else {
-                // A shortcut needs ⌘, ⌥ or ⌃.
-                NSSound.beep()
-            }
-            return nil
-        }
-    }
-
-    private func stopRecording() {
-        if let monitor {
-            NSEvent.removeMonitor(monitor)
-        }
-        monitor = nil
-        isRecording = false
-        shortcut.isSuspended = false
-    }
 }

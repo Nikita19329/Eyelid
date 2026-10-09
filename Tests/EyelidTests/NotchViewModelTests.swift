@@ -94,6 +94,21 @@ struct NotchViewModelTests {
         #expect(NotchViewModel.Layout.trackTitleInset + TrackTitle.fontSize < NotchViewModel.Layout.trackTitleHeight)
     }
 
+    @Test func hidingTheLiveActivityKeepsTheNotchToTheCamera() {
+        let model = makeModel()
+        model.trackTitle = TrackTitle()
+
+        model.settings.isLiveActivityHidden = true
+
+        #expect(!model.isShowingTrackTitle)
+        #expect(!model.showsNowPlayingActivity)
+        #expect(model.bodySize == CGSize(width: 185, height: 32))
+
+        // Volume still shows.
+        model.hud = HUDEvent(kind: .volume, level: 0.5)
+        #expect(model.bodySize.width == 185 + 2 * NotchViewModel.Layout.hudSideWidth)
+    }
+
     @Test func titleThatRanPastGoesUnlessAnotherTookItsPlace() {
         let model = makeModel()
         let first = TrackTitle()
