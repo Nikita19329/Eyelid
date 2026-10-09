@@ -10,7 +10,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     let shelf = Shelf()
     let clipboard = ClipboardHistory(pinnedFile: ClipboardHistory.defaultPinnedFile)
     private let hotKeys = HotKeyCenter()
-    private(set) lazy var clipboardShortcut = ClipboardShortcut(center: hotKeys, settings: settings)
+    private(set) lazy var clipboardShortcut = Shortcut(
+        center: hotKeys,
+        isEnabled: { [settings] in settings.clipboardEnabled },
+        hotKey: { [settings] in settings.clipboardHotKey }
+    )
+    private(set) lazy var lidShortcut = Shortcut(
+        center: hotKeys,
+        isEnabled: { [settings] in settings.liveActivityShortcutEnabled },
+        hotKey: { [settings] in settings.liveActivityHotKey }
+    )
     private lazy var hud = HUDService(settings: settings)
     private var notches: NotchCoordinator?
     private var signalSources: [DispatchSourceSignal] = []
@@ -33,6 +42,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             shelf: shelf,
             clipboard: clipboard,
             clipboardShortcut: clipboardShortcut,
+            lidShortcut: lidShortcut,
             hud: hud,
             settings: settings
         )

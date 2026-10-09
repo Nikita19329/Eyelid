@@ -5,13 +5,14 @@ struct SettingsView: View {
     @Bindable var settings: AppSettings
     let shelf: Shelf
     let clipboard: ClipboardHistory
-    let clipboardShortcut: ClipboardShortcut
+    let clipboardShortcut: Shortcut
+    let lidShortcut: Shortcut
 
     var body: some View {
         TabView {
             GeneralSettings(settings: settings)
                 .tabItem { Label("General", systemImage: "gearshape") }
-            NotchSettings(settings: settings)
+            NotchSettings(settings: settings, shortcut: lidShortcut)
                 .tabItem { Label("Notch", systemImage: "rectangle.topthird.inset.filled") }
             VolumeAndBrightnessSettings(settings: settings)
                 .tabItem { Label("Volume & Brightness", systemImage: "speaker.wave.2") }
@@ -61,6 +62,7 @@ private struct GeneralSettings: View {
 
 private struct NotchSettings: View {
     @Bindable var settings: AppSettings
+    let shortcut: Shortcut
 
     var body: some View {
         Form {
@@ -94,6 +96,24 @@ private struct NotchSettings: View {
                     Text("Track title")
                     Text("Shows the title under the notch when something starts playing, in the colors of its artwork.")
                 }
+            }
+
+            Section {
+                Toggle(isOn: $settings.liveActivityShortcutEnabled) {
+                    Text("Hide and show with a shortcut")
+                    Text("Hides the live activity and track titles, so the notch covers nothing in the menu bar. Volume, battery and output changes still show.")
+                }
+
+                LabeledContent {
+                    HotKeyRecorder(hotKey: $settings.liveActivityHotKey, shortcut: shortcut)
+                } label: {
+                    Text("Shortcut")
+                    if shortcut.isTaken {
+                        Text("Another app already uses this shortcut. Choose a different one.")
+                            .foregroundStyle(.red)
+                    }
+                }
+                .disabled(!settings.liveActivityShortcutEnabled)
             }
         }
         .formStyle(.grouped)

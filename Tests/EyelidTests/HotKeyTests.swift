@@ -15,6 +15,7 @@ struct HotKeyTests {
 
     @Test func readsLikeAMenuShortcut() {
         #expect(HotKey.clipboardDefault.displayString == "⇧⌘V")
+        #expect(HotKey.liveActivityDefault.displayString == "⌥Z")
         let all = HotKey(keyCode: UInt32(kVK_Space), modifiers: UInt32(controlKey | optionKey | shiftKey | cmdKey))
         #expect(all.displayString == "⌃⌥⇧⌘Space")
         #expect(HotKey(keyCode: UInt32(kVK_F5), modifiers: UInt32(optionKey)).displayString == "⌥F5")

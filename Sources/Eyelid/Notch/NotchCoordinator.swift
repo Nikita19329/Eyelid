@@ -23,7 +23,8 @@ final class NotchCoordinator {
         output: OutputService,
         shelf: Shelf,
         clipboard: ClipboardHistory,
-        clipboardShortcut: ClipboardShortcut,
+        clipboardShortcut: Shortcut,
+        lidShortcut: Shortcut,
         hud: HUDService,
         settings: AppSettings
     ) {
@@ -61,6 +62,9 @@ final class NotchCoordinator {
             guard let self, settings.showsTrackTitle else { return }
             activeNotch?.showTrackTitle()
         }
+        lidShortcut.onPress = { [weak self] in
+            self?.toggleLiveActivity()
+        }
         clipboardShortcut.onPress = { [weak self] in
             self?.toggleClipboard()
         }
@@ -70,6 +74,11 @@ final class NotchCoordinator {
     private var activeNotch: NotchWindowController? {
         let pointer = NSEvent.mouseLocation
         return controllers.first { $0.screenFrame.contains(pointer) } ?? controllers.first
+    }
+
+    /// Hides the live activity and track titles, or shows them again. They stay hidden across launches.
+    private func toggleLiveActivity() {
+        settings.isLiveActivityHidden.toggle()
     }
 
     /// Opens the clipboard history where the user is looking, or closes it wherever it's open.

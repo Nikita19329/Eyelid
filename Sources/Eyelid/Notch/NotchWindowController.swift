@@ -171,7 +171,7 @@ final class NotchWindowController {
 
     /// Drops the lower lid to run what started playing along it. The open notch shows the track in full already.
     func showTrackTitle() {
-        guard model.state == .closed else { return }
+        guard model.state == .closed, !settings.isLiveActivityHidden else { return }
         let title = TrackTitle()
         model.trackTitle = title
         // The title ends itself once it has run past. This is in case it never shows, behind the HUD for one.

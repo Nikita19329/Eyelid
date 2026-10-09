@@ -1,30 +1,33 @@
 import Observation
 
-/// Keeps the clipboard shortcut registered while the history is on, and follows changes to it in Settings.
+/// Keeps a global shortcut registered while it's turned on, and follows changes to it in Settings: the clipboard
+/// history's, and the one that hides the live activity.
 @MainActor
 @Observable
-final class ClipboardShortcut {
+final class Shortcut {
     @ObservationIgnored var onPress: (@MainActor () -> Void)?
 
-    /// Whether another app already has the shortcut, so it can't open the history.
+    /// Whether another app already has the shortcut, so it does nothing here.
     private(set) var isTaken = false
-    /// Set while Settings records a new shortcut, so pressing the current one records it instead of opening
-    /// the history.
+    /// Set while Settings records a new shortcut, so pressing the current one records it instead of acting on it.
     var isSuspended = false
 
     @ObservationIgnored private let center: HotKeyCenter
-    @ObservationIgnored private let settings: AppSettings
+    @ObservationIgnored private let isEnabled: @MainActor () -> Bool
+    @ObservationIgnored private let hotKey: @MainActor () -> HotKey
     @ObservationIgnored private var registration: HotKeyCenter.Registration?
 
-    init(center: HotKeyCenter, settings: AppSettings) {
+    /// `isEnabled` and `hotKey` read settings, which are followed as they change.
+    init(center: HotKeyCenter, isEnabled: @escaping @MainActor () -> Bool, hotKey: @escaping @MainActor () -> HotKey) {
         self.center = center
-        self.settings = settings
+        self.isEnabled = isEnabled
+        self.hotKey = hotKey
         follow()
     }
 
     private func follow() {
         withObservationTracking {
-            update(isOn: settings.clipboardEnabled && !isSuspended, hotKey: settings.clipboardHotKey)
+            update(isOn: isEnabled() && !isSuspended, hotKey: hotKey())
         } onChange: { [weak self] in
             // `onChange` runs before the new value is stored, so read it on the next turn of the main actor.
             Task { @MainActor in
