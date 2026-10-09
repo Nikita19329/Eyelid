@@ -161,7 +161,8 @@ struct NowPlayingArtworkWaitTests {
         #expect((service.track?.artworkColor?.green ?? 0) > 0.7)
     }
 
-    @Test func resumingShowsTheTitleRightAway() throws {
+    /// Seeking in YouTube pauses for a moment, then plays on: not a start.
+    @Test func playingOnAfterAMomentIsNotAStart() throws {
         let starts = Starts()
         let service = service(starts)
         let cover = try png(red: 0.9, green: 0.6, blue: 0.1)
@@ -170,7 +171,7 @@ struct NowPlayingArtworkWaitTests {
         service.apply(try snapshot("One", playing: false, artwork: cover))
         service.apply(try snapshot("One", artwork: cover))
 
-        #expect(starts.count == 2)
+        #expect(starts.count == 1)
         #expect(!service.isAwaitingArtwork)
     }
 
@@ -182,5 +183,35 @@ struct NowPlayingArtworkWaitTests {
         service.apply(try snapshot("One"))
 
         #expect(service.track?.artwork != nil)
+    }
+
+    /// YouTube plays muted previews as the pointer passes over them, and reports each as playing.
+    @Test func silentPlaybackIsNotAStartUntilItIsHeard() async throws {
+        let starts = Starts()
+        final class Sound { var isOn = false }
+        let sound = Sound()
+        let service = NowPlayingService(artworkGrace: 0.06, earlyTitleWait: 0.06, isAudible: { _ in sound.isOn })
+        service.onPlaybackStart = { starts.count += 1 }
+
+        service.apply(try snapshot("Preview"))
+        try await Task.sleep(for: .milliseconds(300))
+        #expect(starts.count == 0)
+
+        // Opening the video: the same item, now heard.
+        sound.isOn = true
+        try await Task.sleep(for: .milliseconds(400))
+        #expect(starts.count == 1)
+    }
+
+    @Test func silentPlaybackThatStopsIsForgotten() async throws {
+        let starts = Starts()
+        let service = NowPlayingService(artworkGrace: 0.06, earlyTitleWait: 0.06, isAudible: { _ in false })
+        service.onPlaybackStart = { starts.count += 1 }
+
+        service.apply(try snapshot("Preview"))
+        service.apply(try snapshot("Preview", playing: false))
+        try await Task.sleep(for: .milliseconds(300))
+
+        #expect(starts.count == 0)
     }
 }

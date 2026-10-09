@@ -40,6 +40,18 @@ struct TrackTitleTests {
         #expect(!TrackTitle.isWorthShowing(from: track(), to: later))
     }
 
+    @Test func showsTheSameTrackOnlyAfterARealPause() {
+        let paused = track(isPlaying: false)
+
+        // Seeking pauses for a moment.
+        #expect(!TrackTitle.isWorthShowing(from: paused, to: track(), pausedFor: .milliseconds(80)))
+        #expect(TrackTitle.isWorthShowing(from: paused, to: track(), pausedFor: TrackTitle.shortPause))
+        // When the pause began isn't known, as at launch.
+        #expect(TrackTitle.isWorthShowing(from: paused, to: track(), pausedFor: nil))
+        // Another track counts however short the pause.
+        #expect(TrackTitle.isWorthShowing(from: paused, to: track("Two"), pausedFor: .milliseconds(80)))
+    }
+
     @Test func staysQuietForPausesAndUntitledMedia() {
         #expect(!TrackTitle.isWorthShowing(from: track(), to: track(isPlaying: false)))
         #expect(!TrackTitle.isWorthShowing(from: nil, to: track("")))
