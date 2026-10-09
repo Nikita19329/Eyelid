@@ -12,6 +12,9 @@ final class AppSettings {
         static let showsLiveActivity = "showsLiveActivity"
         static let showsTrackTitle = "showsTrackTitle"
         static let equalizerFollowsAudio = "equalizerFollowsAudio"
+        static let isLiveActivityHidden = "isLiveActivityHidden"
+        static let liveActivityShortcutEnabled = "liveActivityShortcutEnabled"
+        static let liveActivityHotKey = "liveActivityHotKey"
         static let batteryActivityEnabled = "batteryActivityEnabled"
         static let outputActivityEnabled = "outputActivityEnabled"
         static let replacesSystemHUD = "replacesSystemHUD"
@@ -41,6 +44,22 @@ final class AppSettings {
     /// Whether artwork and an equalizer appear next to the closed notch while something plays.
     var showsLiveActivity: Bool {
         didSet { defaults.set(showsLiveActivity, forKey: Key.showsLiveActivity) }
+    }
+
+    /// Whether the live activity and track titles are hidden for now, with the shortcut or the menu, so the notch
+    /// takes no more room in the menu bar than the camera. Volume, battery and output changes still show.
+    var isLiveActivityHidden: Bool {
+        didSet { defaults.set(isLiveActivityHidden, forKey: Key.isLiveActivityHidden) }
+    }
+
+    /// Whether `liveActivityHotKey` hides and shows the live activity.
+    var liveActivityShortcutEnabled: Bool {
+        didSet { defaults.set(liveActivityShortcutEnabled, forKey: Key.liveActivityShortcutEnabled) }
+    }
+
+    /// The shortcut that hides and shows the live activity.
+    var liveActivityHotKey: HotKey {
+        didSet { Self.store(liveActivityHotKey, as: Key.liveActivityHotKey, in: defaults) }
     }
 
     /// Whether the equalizer next to the notch moves with the sound that's playing, rather than on its own. Off by
@@ -110,12 +129,7 @@ final class AppSettings {
 
     /// The shortcut that opens the clipboard history.
     var clipboardHotKey: HotKey {
-        didSet {
-            defaults.set(
-                ["keyCode": Int(clipboardHotKey.keyCode), "modifiers": Int(clipboardHotKey.modifiers)],
-                forKey: Key.clipboardHotKey
-            )
-        }
+        didSet { Self.store(clipboardHotKey, as: Key.clipboardHotKey, in: defaults) }
     }
 
     /// Whether choosing a copy also pastes it into the app in front. Needs Accessibility access to press ⌘V.
@@ -149,12 +163,21 @@ final class AppSettings {
         shelfRemovesDraggedFiles = defaults.object(forKey: Key.shelfRemovesDraggedFiles) as? Bool ?? true
         clipboardEnabled = defaults.object(forKey: Key.clipboardEnabled) as? Bool ?? false
         clipboardPastesAfterChoosing = defaults.object(forKey: Key.clipboardPastesAfterChoosing) as? Bool ?? false
-        if let stored = defaults.object(forKey: Key.clipboardHotKey) as? [String: Int],
-           let keyCode = stored["keyCode"], let modifiers = stored["modifiers"] {
-            clipboardHotKey = HotKey(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers))
-        } else {
-            clipboardHotKey = .clipboardDefault
-        }
+        clipboardHotKey = Self.hotKey(Key.clipboardHotKey, in: defaults) ?? .clipboardDefault
+        isLiveActivityHidden = defaults.object(forKey: Key.isLiveActivityHidden) as? Bool ?? false
+        liveActivityShortcutEnabled = defaults.object(forKey: Key.liveActivityShortcutEnabled) as? Bool ?? true
+        liveActivityHotKey = Self.hotKey(Key.liveActivityHotKey, in: defaults) ?? .liveActivityDefault
+    }
+
+    private static func store(_ hotKey: HotKey, as key: String, in defaults: any SettingsStore) {
+        defaults.set(["keyCode": Int(hotKey.keyCode), "modifiers": Int(hotKey.modifiers)], forKey: key)
+    }
+
+    private static func hotKey(_ key: String, in defaults: any SettingsStore) -> HotKey? {
+        guard let stored = defaults.object(forKey: key) as? [String: Int],
+              let keyCode = stored["keyCode"], let modifiers = stored["modifiers"]
+        else { return nil }
+        return HotKey(keyCode: UInt32(keyCode), modifiers: UInt32(modifiers))
     }
 }
 

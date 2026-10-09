@@ -6,7 +6,7 @@ struct EyelidApp: App {
 
     var body: some Scene {
         MenuBarExtra("Eyelid", systemImage: "eye") {
-            MenuBarMenu()
+            MenuBarMenu(settings: appDelegate.settings)
         }
 
         Settings {
@@ -14,7 +14,8 @@ struct EyelidApp: App {
                 settings: appDelegate.settings,
                 shelf: appDelegate.shelf,
                 clipboard: appDelegate.clipboard,
-                clipboardShortcut: appDelegate.clipboardShortcut
+                clipboardShortcut: appDelegate.clipboardShortcut,
+                lidShortcut: appDelegate.lidShortcut
             )
         }
     }
@@ -22,9 +23,17 @@ struct EyelidApp: App {
 
 /// Eyelid has no Dock icon, so the menu bar item is the way to reach Settings and to quit.
 private struct MenuBarMenu: View {
+    @Bindable var settings: AppSettings
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
+        // The shortcut does the same, and Settings shows which it is.
+        Button(settings.isLiveActivityHidden ? "Show Live Activity" : "Hide Live Activity") {
+            settings.isLiveActivityHidden.toggle()
+        }
+
+        Divider()
+
         Button("Settings…") {
             // Without a Dock icon the app is never active on its own, and Settings would open behind other windows.
             NSApp.activate()

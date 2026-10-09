@@ -13,6 +13,9 @@ struct AppSettingsTests {
         #expect(settings.showsLiveActivity)
         #expect(settings.showsTrackTitle)
         #expect(!settings.equalizerFollowsAudio)
+        #expect(!settings.isLiveActivityHidden)
+        #expect(settings.liveActivityShortcutEnabled)
+        #expect(settings.liveActivityHotKey == .liveActivityDefault)
         #expect(settings.batteryActivityEnabled)
         #expect(settings.outputActivityEnabled)
         #expect(!settings.replacesSystemHUD)
@@ -34,6 +37,9 @@ struct AppSettingsTests {
         settings.showsLiveActivity = false
         settings.showsTrackTitle = false
         settings.equalizerFollowsAudio = true
+        settings.isLiveActivityHidden = true
+        settings.liveActivityShortcutEnabled = false
+        settings.liveActivityHotKey = HotKey(keyCode: 50, modifiers: 2048)
         settings.batteryActivityEnabled = false
         settings.outputActivityEnabled = false
         settings.replacesSystemHUD = true
@@ -53,6 +59,9 @@ struct AppSettingsTests {
         #expect(!relaunched.showsLiveActivity)
         #expect(!relaunched.showsTrackTitle)
         #expect(relaunched.equalizerFollowsAudio)
+        #expect(relaunched.isLiveActivityHidden)
+        #expect(!relaunched.liveActivityShortcutEnabled)
+        #expect(relaunched.liveActivityHotKey == HotKey(keyCode: 50, modifiers: 2048))
         #expect(!relaunched.batteryActivityEnabled)
         #expect(!relaunched.outputActivityEnabled)
         #expect(relaunched.replacesSystemHUD)
