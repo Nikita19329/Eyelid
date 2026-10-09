@@ -186,7 +186,8 @@ final class NotchViewModel {
     }
 
     var showsNowPlayingActivity: Bool {
-        settings.showsLiveActivity && nowPlaying.track?.isPlaying == true
+        // Not for a muted preview, which reports playing but sends no sound.
+        settings.showsLiveActivity && nowPlaying.track?.isPlaying == true && !nowPlaying.isSilent
     }
 
     /// Whether the closed notch drops down to show the track title. The HUD, battery and output events go first.

@@ -70,3 +70,17 @@ struct AudioLevelsSmoothingTests {
         #expect(AudioLevels.smooth(nil, toward: [0.2, 0.8]) == [0.2, 0.8])
     }
 }
+
+@Suite("Apps that send sound")
+struct AudibleAppsTests {
+    @Test func helpersCountAsTheirApp() {
+        #expect(AudibleApps.matches("com.google.Chrome.helper", ["com.google.Chrome"]))
+        #expect(AudibleApps.matches("org.mozilla.firefox", ["org.mozilla.firefox"]))
+        #expect(!AudibleApps.matches("com.google.Chromecast", ["com.google.Chrome"]))
+        #expect(!AudibleApps.matches("org.mozilla.firefox", []))
+    }
+
+    @Test func cantTellWithoutAnApp() {
+        #expect(AudibleApps.isAudible([]) == nil)
+    }
+}

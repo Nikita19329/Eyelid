@@ -38,16 +38,6 @@ struct TrackTitle: Equatable, Identifiable {
     static func textStart(after elapsed: TimeInterval, textWidth: CGFloat, pathLength: CGFloat) -> CGFloat {
         pathLength - lead - CGFloat(max(elapsed, 0)) * speed(textWidth: textWidth, pathLength: pathLength)
     }
-
-    // MARK: - When to show it
-
-    /// Something started playing: a new track, or the same one after a pause. Not a track that keeps playing, whose
-    /// position or artwork changed.
-    static func isWorthShowing(from previous: NowPlayingTrack?, to current: NowPlayingTrack) -> Bool {
-        guard current.isPlaying, !current.title.isEmpty else { return false }
-        guard let previous, previous.isPlaying else { return true }
-        return previous.title != current.title || previous.artist != current.artist || previous.album != current.album
-    }
 }
 
 /// The title and artist in one line, measured character by character, so each can be placed on its own along the lid.

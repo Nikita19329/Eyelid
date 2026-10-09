@@ -41,6 +41,8 @@ struct NowPlayingSnapshot: Sendable {
     var artist: String
     var album: String
     var appBundleIdentifier: String?
+    /// The process that reported it, and the app it belongs to, for telling whether it sends any sound.
+    var sourceBundleIdentifiers: [String] = []
     var isPlaying: Bool
     var playbackRate: Double
     var duration: TimeInterval?
@@ -60,6 +62,7 @@ struct NowPlayingSnapshot: Sendable {
         album = payload.album ?? ""
         // Web media is often reported by a helper process; the parent is the browser itself.
         appBundleIdentifier = payload.parentApplicationBundleIdentifier ?? payload.bundleIdentifier
+        sourceBundleIdentifiers = [payload.bundleIdentifier, payload.parentApplicationBundleIdentifier].compactMap(\.self)
         isPlaying = payload.playing ?? false
         playbackRate = payload.playbackRate.flatMap { $0 > 0 ? $0 : nil } ?? 1
         duration = payload.durationMicros.map { $0 / 1_000_000 }
