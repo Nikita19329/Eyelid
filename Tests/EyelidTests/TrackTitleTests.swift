@@ -22,39 +22,59 @@ struct TrackTitleTests {
         )
     }
 
-    @Test func showsWhatStartsPlaying() {
-        #expect(TrackTitle.isWorthShowing(from: nil, to: track()))
-        #expect(TrackTitle.isWorthShowing(from: track(isPlaying: false), to: track()))
+    @Test func newTrackIsAStart() {
+        var starts = PlaybackStarts()
+        let now = ContinuousClock.now
+
+        do { let isStart = starts.isStart(track("One"), at: now); #expect(isStart) }
+        starts.didReport(track("One"))
+        do { let isStart = starts.isStart(track("One"), at: now); #expect(!isStart) }
+        do { let isStart = starts.isStart(track("Two"), at: now); #expect(isStart) }
+        do { let isStart = starts.isStart(track("One", artist: "Other"), at: now); #expect(isStart) }
+        do { let isStart = starts.isStart(track("One", album: "Other"), at: now); #expect(isStart) }
     }
 
-    @Test func showsTheNextTrack() {
-        #expect(TrackTitle.isWorthShowing(from: track("One"), to: track("Two")))
-        #expect(TrackTitle.isWorthShowing(from: track(artist: "A"), to: track(artist: "B")))
-        #expect(TrackTitle.isWorthShowing(from: track(album: "A"), to: track(album: "B")))
-    }
-
-    @Test func staysQuietWhileTheSameTrackPlaysOn() {
+    @Test func playingOnIsNotAStart() {
+        var starts = PlaybackStarts()
+        let now = ContinuousClock.now
+        starts.didReport(track())
         var later = track()
         later.elapsedTime = 42
 
-        #expect(!TrackTitle.isWorthShowing(from: track(), to: later))
+        do { let isStart = starts.isStart(later, at: now + .seconds(30)); #expect(!isStart) }
     }
 
-    @Test func showsTheSameTrackOnlyAfterARealPause() {
-        let paused = track(isPlaying: false)
+    @Test func seekIsNotAStartButARealPauseIs() {
+        var starts = PlaybackStarts()
+        let now = ContinuousClock.now
+        starts.didReport(track())
 
         // Seeking pauses for a moment.
-        #expect(!TrackTitle.isWorthShowing(from: paused, to: track(), pausedFor: .milliseconds(80)))
-        #expect(TrackTitle.isWorthShowing(from: paused, to: track(), pausedFor: TrackTitle.shortPause))
-        // When the pause began isn't known, as at launch.
-        #expect(TrackTitle.isWorthShowing(from: paused, to: track(), pausedFor: nil))
-        // Another track counts however short the pause.
-        #expect(TrackTitle.isWorthShowing(from: paused, to: track("Two"), pausedFor: .milliseconds(80)))
+        do { let isStart = starts.isStart(track(isPlaying: false), at: now); #expect(!isStart) }
+        do { let isStart = starts.isStart(track(), at: now + .milliseconds(80)); #expect(!isStart) }
+        // A real pause.
+        do { let isStart = starts.isStart(track(isPlaying: false), at: now + .seconds(1)); #expect(!isStart) }
+        do { let isStart = starts.isStart(track(), at: now + .seconds(1) + PlaybackStarts.shortPause); #expect(isStart) }
     }
 
-    @Test func staysQuietForPausesAndUntitledMedia() {
-        #expect(!TrackTitle.isWorthShowing(from: track(), to: track(isPlaying: false)))
-        #expect(!TrackTitle.isWorthShowing(from: nil, to: track("")))
+    /// A muted preview plays and pauses as the pointer comes and goes, and is never heard, so never reported. Opening
+    /// that video is still a start.
+    @Test func unreportedTrackStaysAStartThroughShortPauses() {
+        var starts = PlaybackStarts()
+        let now = ContinuousClock.now
+
+        do { let isStart = starts.isStart(track("Preview"), at: now); #expect(isStart) }
+        do { let isStart = starts.isStart(track("Preview", isPlaying: false), at: now + .seconds(1)); #expect(!isStart) }
+        do { let isStart = starts.isStart(track("Preview"), at: now + .seconds(2)); #expect(isStart) }
+    }
+
+    @Test func pausesAndUntitledMediaAreNotStarts() {
+        var starts = PlaybackStarts()
+        let now = ContinuousClock.now
+
+        do { let isStart = starts.isStart(track(isPlaying: false), at: now); #expect(!isStart) }
+        do { let isStart = starts.isStart(track(""), at: now); #expect(!isStart) }
+        do { let isStart = starts.isStart(nil, at: now); #expect(!isStart) }
     }
 
     @Test func measuresEachCharacterInTheLine() {

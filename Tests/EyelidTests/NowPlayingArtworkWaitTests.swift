@@ -197,10 +197,15 @@ struct NowPlayingArtworkWaitTests {
         try await Task.sleep(for: .milliseconds(300))
         #expect(starts.count == 0)
 
-        // Opening the video: the same item, now heard.
+        #expect(service.isSilent)
+
+        // The pointer leaves and comes back, then the video opens: the same item, now heard.
+        service.apply(try snapshot("Preview", playing: false))
+        service.apply(try snapshot("Preview"))
         sound.isOn = true
         try await Task.sleep(for: .milliseconds(400))
         #expect(starts.count == 1)
+        #expect(!service.isSilent)
     }
 
     @Test func silentPlaybackThatStopsIsForgotten() async throws {

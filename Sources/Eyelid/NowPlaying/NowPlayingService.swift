@@ -14,8 +14,12 @@ final class NowPlayingService {
     @ObservationIgnored var onPlaybackStart: (@MainActor () -> Void)?
     /// The start of the track whose title came early is reported already.
     @ObservationIgnored private var startIsReported = false
-    /// When the track playing paused, to tell a pause from a seek.
-    @ObservationIgnored private var pausedAt: ContinuousClock.Instant?
+    /// Tells starts from tracks that play on, pause for a moment or were never heard.
+    @ObservationIgnored private var starts = PlaybackStarts()
+    /// Whether what plays sends no sound, as a muted YouTube preview: the notch then doesn't show it playing.
+    private(set) var isSilent = false
+    /// The start waiting to be heard.
+    @ObservationIgnored private var pendingStart: PlaybackStarts.Item?
     /// Whether an app is sending any sound, by its bundle identifiers. Nil when that can't be told.
     @ObservationIgnored private let isAudible: @MainActor ([String]) -> Bool?
     /// Waits for what started to be heard, since a muted preview reports playing too.
@@ -164,7 +168,7 @@ final class NowPlayingService {
             if earlyTitle == nil, snapshot.isPlaying {
                 startIsReported = true
                 sourceBundleIdentifiers = snapshot.sourceBundleIdentifiers
-                reportStartOnceHeard()
+                reportOnceHeard(nil)
             }
             holdEarlyTitle(snapshot)
             return
@@ -215,46 +219,64 @@ final class NowPlayingService {
             artworkColor: artworkColor
         )
         track = current
-        // Seeking pauses for a moment, which is not a start.
-        let pausedFor = pausedAt.map { ContinuousClock.now - $0 }
-        if current.isPlaying {
-            pausedAt = nil
-        } else if previous?.isPlaying == true {
-            pausedAt = .now
-        }
         sourceBundleIdentifiers = snapshot.sourceBundleIdentifiers
-        if TrackTitle.isWorthShowing(from: previous, to: current, pausedFor: pausedFor), !startIsReported {
-            reportStartOnceHeard()
+        if startIsReported {
+            // The early title got the notch going already.
+            startIsReported = false
+            if current.isPlaying {
+                starts.didReport(current)
+            }
+        } else if starts.isStart(current, at: .now) {
+            reportOnceHeard(current)
         }
-        startIsReported = false
         if !current.isPlaying {
             audibleTask?.cancel()
             audibleTask = nil
+            pendingStart = nil
+            isSilent = false
         }
     }
 
     // MARK: - Starts that are heard
 
     /// Reports a start once its app sends sound, checking again while it plays. A muted YouTube preview never does,
-    /// but opening that video then does. When it can't be told, the start is reported right away.
-    private func reportStartOnceHeard() {
-        audibleTask?.cancel()
-        audibleTask = nil
-        if isAudible(sourceBundleIdentifiers) != false {
-            onPlaybackStart?()
+    /// but opening that video then does. When it can't be told, the start is reported right away. `track` is nil for
+    /// an early title, whose track isn't in yet.
+    private func reportOnceHeard(_ track: NowPlayingTrack?) {
+        let item = track.map(PlaybackStarts.Item.init)
+        if item != nil, item == pendingStart, audibleTask != nil {
+            // Waiting for this one already.
             return
         }
+        audibleTask?.cancel()
+        audibleTask = nil
+        pendingStart = item
+        if isAudible(sourceBundleIdentifiers) != false {
+            isSilent = false
+            report(track)
+            return
+        }
+        isSilent = true
         audibleTask = Task { [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(200))
-                guard let self, !Task.isCancelled, track?.isPlaying == true else { return }
+                guard let self, !Task.isCancelled, self.track?.isPlaying == true else { return }
                 if isAudible(sourceBundleIdentifiers) != false {
                     audibleTask = nil
-                    onPlaybackStart?()
+                    isSilent = false
+                    report(self.track)
                     return
                 }
             }
         }
+    }
+
+    private func report(_ track: NowPlayingTrack?) {
+        pendingStart = nil
+        if let track {
+            starts.didReport(track)
+        }
+        onPlaybackStart?()
     }
 
     // MARK: - Early titles

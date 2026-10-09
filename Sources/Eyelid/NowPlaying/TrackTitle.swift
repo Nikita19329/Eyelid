@@ -38,25 +38,6 @@ struct TrackTitle: Equatable, Identifiable {
     static func textStart(after elapsed: TimeInterval, textWidth: CGFloat, pathLength: CGFloat) -> CGFloat {
         pathLength - lead - CGFloat(max(elapsed, 0)) * speed(textWidth: textWidth, pathLength: pathLength)
     }
-
-    // MARK: - When to show it
-
-    /// The same track coming back after a pause shorter than this isn't worth showing: seeking, as in YouTube, pauses
-    /// for a moment, and so does buffering.
-    static let shortPause: Duration = .seconds(10)
-
-    /// Something started playing: a new track, or the same one after a pause of `shortPause` or more. Not a track that
-    /// keeps playing, whose position or artwork changed, nor one that was seeked. `pausedFor` is nil when the pause's
-    /// start wasn't seen.
-    static func isWorthShowing(from previous: NowPlayingTrack?, to current: NowPlayingTrack, pausedFor: Duration? = nil)
-        -> Bool {
-        guard current.isPlaying, !current.title.isEmpty else { return false }
-        guard let previous else { return true }
-        let isSameItem = previous.title == current.title && previous.artist == current.artist && previous.album == current.album
-        guard isSameItem else { return true }
-        guard !previous.isPlaying else { return false }
-        return pausedFor.map { $0 >= shortPause } ?? true
-    }
 }
 
 /// The title and artist in one line, measured character by character, so each can be placed on its own along the lid.
